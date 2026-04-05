@@ -96,11 +96,43 @@ node -e "JSON.parse(require('fs').readFileSync('NN-chapter-name.ipynb','utf8'));
 
 If validation fails, fix the builder script and rebuild.
 
-### Chinese Text
+### Chinese Text Rules
 
-JS template literals + `JSON.stringify()` handle Chinese text correctly —
-no special escaping is needed. `"中文双引号"` and `$LaTeX$` all work as-is
-inside template literals.
+- Inside JS template literals, Chinese text and double quotes are safely
+  handled by `JSON.stringify()` — no special escaping needed for the `.ipynb`
+  output
+- The main pitfall is Python strings containing escaped quotes — use `\\"` in
+  the JS template literal (which becomes `\"` in the Python source)
+- LaTeX in JSON needs double-escaped backslashes (`\\\\frac` in raw JSON),
+  but inside JS template literals `\\frac` is sufficient
+
+### Handling Backticks in Template Literals
+
+When notebook content contains backtick characters (`` ` ``) — e.g., Markdown
+inline code or Python f-strings — they will prematurely close the JS template
+literal and cause a `SyntaxError`. Use these patterns:
+
+**In markdown cells** — define backtick constants and interpolate:
+
+```javascript
+const BT = '`';       // single backtick
+const BT3 = '```';    // triple backtick (for fenced code blocks)
+
+md(`Use ${BT}coral eval${BT} to evaluate.`);
+md(`${BT3}python\nprint("hello")\n${BT3}`);
+```
+
+**In Python code cells** — use `chr(96)` to generate backticks at runtime:
+
+```javascript
+code(`bt = chr(96)  # backtick character
+bt3 = bt * 3
+print(f"Run {bt}coral eval -m \\"msg\\"{bt}")`);
+```
+
+This is the most common build failure — almost every tutorial will have
+backticks in code or documentation. Always declare `BT`/`BT3` at the top
+of every builder script.
 
 ### Diagrams (depends on diagram mode chosen in Phase 1)
 
@@ -113,6 +145,17 @@ flowchart LR
     A --> B --> C
 ```
 ````
+
+Add a lint check at the end of each builder script (before writing the file)
+to catch accidental mermaid in code cells:
+
+```javascript
+cells.forEach((cell, i) => {
+  if (cell.cell_type === 'code' && cell.source.join('').includes('```mermaid')) {
+    console.warn(`WARNING: Cell ${i} is a code cell but contains mermaid diagram`);
+  }
+});
+```
 
 **SVG mode (Excalidraw)** — Create `.excalidraw` files using the
 `excalidraw-diagram` skill, then convert to SVG and reference from markdown
@@ -139,9 +182,26 @@ markdown cells for simple diagrams:
 Create notebooks **serially** (one at a time), not in parallel. Parallel
 agent creation causes API rate-limit errors and inconsistent cross-references.
 
-### Clean Up Builder Scripts
+### Builder Script Cleanup
 
-After all notebooks are built and validated, delete the `_build_nb*.js` files.
+After all notebooks are built and validated, **move** the `_build_nb*.js`
+files into a `scripts/` directory (do not delete them). These scripts are the
+editable source of the notebooks — deleting them forces future edits to happen
+directly on `.ipynb` JSON files, which is exactly what the builder pattern
+avoids.
+
+Optionally create a `scripts/build_all.sh` to rebuild everything:
+
+```bash
+#!/bin/bash
+set -e
+cd "$(dirname "$0")"
+for f in _build_nb*.js; do
+  echo "Building $f..."
+  node "$f"
+done
+echo "All notebooks built."
+```
 
 ---
 
@@ -289,7 +349,20 @@ For each feature in cognitive order, create a notebook that:
 6. **Includes a source mapping table** — A table showing "Our Implementation
    vs. Original Source" so readers can cross-reference.
 7. **Updates `our-implementation/`** — Write the clean module code that all
-   subsequent notebooks will import (incremental mode only).
+   subsequent notebooks will import (incremental mode only). There are two
+   strategies:
+
+   - **Strategy A (notebook-runtime save)**: Include a code cell with
+     `open('our-implementation/module.py', 'w').write(...)` that saves the
+     module when the notebook is executed in Jupyter. Advantage: the save is
+     visible to the reader. Disadvantage: requires actually running the notebook.
+   - **Strategy B (builder-script save)** *(recommended)*: Add
+     `fs.writeFileSync('../our-implementation/module.py', moduleCode)` at the
+     end of the `_build_nbNN.js` script. Advantage: `our-implementation/` is
+     always up to date after building, even if the user never runs the notebook.
+
+   You may combine both — the builder script writes the file, and a notebook
+   cell also writes it (ensuring consistency when run interactively).
 
 See `templates/feature-template.md` for the exact notebook structure.
 
@@ -409,6 +482,10 @@ cross-referenced, and available for future tutorials on related topics.
 │   ├── 02-<feature-name>.ipynb      # One notebook per feature
 │   ├── ...
 │   └── NN-full-integration.ipynb    # Assembles everything, runs all tests
+├── scripts/                         # Builder scripts (moved here after build)
+│   ├── _build_nb00.js
+│   ├── ...
+│   └── build_all.sh                 # Optional: rebuild all notebooks
 └── references/
     └── papers.md                    # Papers and sources cited
 ```
@@ -465,7 +542,9 @@ When building notebooks with the Node.js builder script:
 
 ### Verification Pattern
 
-Each notebook should end with a test cell like this:
+Each notebook should end with a test cell. Choose the appropriate mode:
+
+**Mode A — Run original tests** (when the test environment is available):
 
 ```python
 # --- Verification ---
@@ -478,6 +557,34 @@ result = subprocess.run(
 print(result.stdout[-3000:])   # last 3000 chars to avoid scroll flood
 assert result.returncode == 0, "Tests failed — check implementation above"
 print("✓ All tests pass for this feature")
+```
+
+**Mode B — Self-contained assertions** (when original tests depend on complex
+environments like Docker, tmux, specific OS, or external services):
+
+```python
+# --- Self-contained verification ---
+# Verify core behaviors with inline assertions
+assert grader.grade(code).aggregated > 0, "Grader should return positive score"
+assert len(read_attempts(coral_dir)) == 5, "Should have 5 attempts"
+assert best.status == "improved", "Best attempt should be improved"
+print("✓ All assertions passed")
+```
+
+Mode B is preferred when the original test suite cannot run in a notebook
+context. The assertions should cover the same behaviors as the original tests.
+
+### Cross-Notebook References
+
+When referencing other chapters, use consistent formats:
+
+- Link to another notebook: `[Chapter 3](03-grader-system.ipynb)`
+- Reference a specific section: `See [Chapter 3 §2.1](03-grader-system.ipynb) (GraderInterface Protocol)`
+- Navigation footer: Each notebook should end with previous/next links:
+
+```markdown
+---
+← [Chapter 2: Config System](02-config-system.ipynb) | [Chapter 4: Hub](04-hub-shared-state.ipynb) →
 ```
 
 ---
@@ -499,7 +606,7 @@ Before declaring the tutorial complete, verify:
 - [ ] The running example appears in every notebook and grows progressively
 - [ ] A reader with zero prior knowledge of the project can follow the narrative
 - [ ] The final integration notebook runs the complete test suite green
-- [ ] All `_build_nb*.js` builder scripts are cleaned up after building
+- [ ] All `_build_nb*.js` builder scripts are moved to `scripts/` after building
 - [ ] Diagrams render correctly in the chosen mode (SVG renders in notebooks, mermaid renders in JupyterLab/GitHub)
 - [ ] `SKILL-IMPROVEMENTS.md` has been maintained throughout the project
 - [ ] Generalizable improvements from `SKILL-IMPROVEMENTS.md` have been applied back to the skill files
