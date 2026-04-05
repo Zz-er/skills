@@ -1,0 +1,8 @@
+{
+  "name": "reimpl-tutorial",
+  "version": "1.0.0",
+  "description": "Generate 'from zero to expert' tutorials by reimplementing projects in Jupyter notebooks. Includes excalidraw-diagram skill for SVG diagram generation — no additional dependencies needed.",
+  "author": {
+    "name": "local"
+  }
+}

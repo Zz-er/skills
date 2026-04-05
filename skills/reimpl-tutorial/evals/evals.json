@@ -1,0 +1,17 @@
+{
+  "skill_name": "reimpl-tutorial",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Use the reimpl-tutorial skill to analyze the OpenEvolve project at G:/agents/opensouce_proj/openevolve and produce the tutorial outline: (1) run Phase 1 deep analysis following prompts/analysis-deep.md, (2) produce a feature list with cognitive ordering using prompts/feature-extraction.md, (3) generate notebooks/00-why-this-project.ipynb and notebooks/01-minimal-viable.ipynb as complete Jupyter notebooks with markdown cells and code cells. Output everything to ./openevolve-from-scratch/",
+      "expected_output": "Two .ipynb files in notebooks/, a feature list with cognitive ordering, and a README.md",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "Use the reimpl-tutorial skill to analyze the OpenEvolve project at G:/agents/opensouce_proj/openevolve. Focus on the database.py MAP-Elites implementation. Create notebooks/02-map-elites.ipynb that: explains MAP-Elites from first principles with a LaTeX derivation, reimplements the core grid data structure, and includes a visualization of the grid. Output to ./openevolve-from-scratch/",
+      "expected_output": "A Jupyter notebook with markdown theory cells including LaTeX, code implementation cells, a visualization cell, and a test verification cell",
+      "files": []
+    }
+  ]
+}

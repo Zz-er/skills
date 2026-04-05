@@ -1,0 +1,114 @@
+# Cognitive Ordering Template
+#
+# Use this to plan the sequence of notebooks before writing any of them.
+# Fill in the features you identified during Phase 1 analysis.
+# Move features between levels until the progression feels natural to a newcomer.
+
+# --- Notebook Mode Selection ---
+# Choose one before starting:
+#
+# self_contained: Each notebook is fully independent. All code is defined
+#   inline. Best for reference-style tutorials where readers may skip around.
+#
+# incremental (recommended): Later notebooks import from our-implementation/
+#   which earlier notebooks build up. Provides a more natural "building"
+#   experience but requires reading in order.
+#
+notebook_mode: incremental
+
+# --- Running Example ---
+# The running example appears in EVERY notebook at every level.
+# Fill in how the example evolves at each level.
+running_example:
+  name: ""          # e.g., "Sorting Algorithm"
+  description: ""   # e.g., "Evolving sorting algorithms from bubble sort to optimal"
+  selection_criteria:
+    - "Simple enough to explain in 5 minutes"
+    - "Exercises the core algorithm (not peripheral features)"
+    - "Can be demonstrated in a few lines of code"
+    - "Has output that's easy to visualize"
+    - "Naturally extends at every cognitive level"
+
+cognitive_order:
+
+  level_0_foundation:
+    description: >
+      Things a reader needs to understand before the main algorithm makes sense.
+      These are often boring but necessary — data structures, config loading,
+      basic utilities. Keep this level short; readers are eager to get to the
+      real thing.
+    running_example_role: ""  # e.g., "Introduce the sorting problem and bubble sort"
+    notebooks:
+      - id: "00-why-this-project"
+        title: "Why This Project Exists"
+        covers: "Problem statement, motivation, what success looks like"
+        feature_list: []  # Fill in: e.g. ["problem_definition", "evaluation_metric"]
+
+      - id: "01-data-structures"
+        title: "Core Data Structures"
+        covers: "The fundamental types the whole system is built on"
+        feature_list: []
+
+  level_1_core:
+    description: >
+      The heart of the project — the main loop, the central abstraction, the
+      primary algorithm. This is what makes the project interesting. Take your
+      time here; explain every decision.
+    running_example_role: ""  # e.g., "Evolve sorting with the core loop"
+    notebooks:
+      - id: "02-minimal-viable"
+        title: "Minimal Viable Version"
+        covers: >
+          The simplest possible implementation that does the core thing.
+          No error handling, no optimization — just the happy path.
+        feature_list: []
+
+      - id: "03-main-algorithm"
+        title: "The Main Algorithm"
+        covers: "Full implementation of the primary algorithm with derivations"
+        feature_list: []
+
+  level_2_enhancements:
+    description: >
+      Once the core works, add the features that make it production-quality:
+      error handling, performance, edge cases. Each notebook should start by
+      showing what breaks without the feature (pain-point driven teaching).
+    running_example_role: ""  # e.g., "Same sort example, now with diversity and evaluation"
+    notebooks:
+      - id: "XX-error-handling"
+        title: "Error Handling & Resilience"
+        covers: "What can go wrong and how the system recovers"
+        feature_list: []
+
+      - id: "XX-performance"
+        title: "Performance Optimization"
+        covers: "Where the bottlenecks are and how they're addressed"
+        feature_list: []
+
+  level_3_advanced:
+    description: >
+      Extension points, integrations, and optional features. Readers at this
+      level already understand the system well — you can be more terse and
+      reference earlier notebooks freely.
+    running_example_role: ""  # e.g., "Full pipeline evolves optimal sort with parallelism"
+    notebooks:
+      - id: "XX-extensions"
+        title: "Extension Points"
+        covers: "How to customize and extend the system"
+        feature_list: []
+
+      - id: "NN-full-integration"
+        title: "Full Integration"
+        covers: "Assembling everything; running the complete test suite"
+        feature_list: []  # All features
+
+# Guidelines for ordering decisions:
+#
+# A feature belongs at Level N if:
+# - All features it DEPENDS ON are at Level < N
+# - A reader who has only seen Level < N notebooks will understand why it's needed
+#
+# Red flags that ordering is wrong:
+# - A notebook references a concept not yet introduced
+# - A notebook adds a feature before the reader has felt the pain it solves
+# - Level 0 has too many notebooks (move things to appendices or merge)
