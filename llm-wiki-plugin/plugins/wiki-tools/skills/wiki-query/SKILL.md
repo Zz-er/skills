@@ -103,3 +103,28 @@ When called from within another skill (e.g., reimpl-tutorial Phase 1):
   identifies a knowledge gap
 - Prefer reading wiki pages over raw sources. The wiki should already have
   the synthesized knowledge you need.
+
+## Skill Self-Improvement
+
+After completing this query, briefly self-check:
+
+- Did the index lead you to the right pages efficiently, or did you need extra
+  grep/search steps? If the index was missing useful entries, note it.
+- Was the query workflow smooth, or did you hit an ambiguous/missing instruction?
+- Did you discover a better search pattern worth standardizing?
+
+If any issue was encountered, append an entry to
+`<wiki_dir>/WIKI-SKILL-IMPROVEMENTS.md` (create the file if it doesn't exist):
+
+```markdown
+### [Short title]
+- **Skill:** wiki-query
+- **Date:** YYYY-MM-DD
+- **Current behavior:** [What the skill says or doesn't say]
+- **Problem:** [What went wrong or was suboptimal]
+- **Suggested fix:** [Concrete change to the skill's SKILL.md]
+```
+
+When the user runs `/wiki-improve` or asks to "update wiki skills", review
+this file and apply generalizable improvements back to the skill files. See
+the `wiki-improve` section in the plugin documentation for details.

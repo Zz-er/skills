@@ -117,3 +117,26 @@ Before finishing:
 - [ ] `wiki/log.md` has been updated
 - [ ] No duplicate pages created (checked index first)
 - [ ] Contradictions flagged on both sides if any
+
+## Skill Self-Improvement
+
+After completing this update, briefly self-check:
+
+- Was the page template adequate, or did you need to invent structure?
+- Was the cross-referencing pass clear, or did you miss connections?
+- Did you discover a better categorization or tagging pattern?
+
+If any issue was encountered, append an entry to
+`<wiki_dir>/WIKI-SKILL-IMPROVEMENTS.md` (create the file if it doesn't exist):
+
+```markdown
+### [Short title]
+- **Skill:** wiki-update
+- **Date:** YYYY-MM-DD
+- **Current behavior:** [What the skill says or doesn't say]
+- **Problem:** [What went wrong or was suboptimal]
+- **Suggested fix:** [Concrete change to the skill's SKILL.md]
+```
+
+When the user runs `/wiki-improve` or asks to "update wiki skills", review
+this file and apply generalizable improvements back to the skill files.

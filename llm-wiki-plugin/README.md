@@ -2,7 +2,7 @@
 
 A personal knowledge base maintained by an LLM. Based on [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f).
 
-Provides four global skills — accessible from any project, no additional setup required.
+Provides five global skills — accessible from any project, no additional setup required.
 
 ## Skills Included
 
@@ -12,6 +12,7 @@ Provides four global skills — accessible from any project, no additional setup
 | **wiki-query** | "check the wiki", "查查知识库" | Search and read from the wiki |
 | **wiki-update** | "add to wiki", "写入wiki" | Create or update wiki pages |
 | **wiki-ingest** | "sync to wiki", "导入知识库" | Import a completed tutorial or source document |
+| **wiki-improve** | `/wiki-improve`, "优化wiki技能" | Review accumulated suggestions and improve the skills themselves |
 
 ## Installation
 
@@ -92,7 +93,8 @@ llm-wiki-plugin/
 │       ├── wiki-init/SKILL.md       # Create new wiki + detect integrations
 │       ├── wiki-query/SKILL.md      # Search wiki
 │       ├── wiki-update/SKILL.md     # Update wiki pages
-│       └── wiki-ingest/SKILL.md     # Import sources
+│       ├── wiki-ingest/SKILL.md     # Import sources
+│       └── wiki-improve/SKILL.md    # Self-iterate: review & apply skill improvements
 └── templates/                       # Wiki directory templates (used by wiki-init)
     ├── CLAUDE.md.tmpl
     ├── gitignore.tmpl

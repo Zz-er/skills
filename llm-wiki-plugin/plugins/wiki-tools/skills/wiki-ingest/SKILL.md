@@ -181,3 +181,28 @@ After completion, report to the user:
 - [ ] `wiki/log.md` has been updated
 - [ ] No broken `[[wikilinks]]` introduced
 - [ ] Contradictions (if any) are flagged on both sides
+
+## Skill Self-Improvement
+
+After completing this ingest, briefly self-check:
+
+- Did the tutorial structure match what the skill expected, or did you have
+  to improvise (missing SUMMARY.md, unexpected directory layout, etc.)?
+- Was the concept/entity extraction comprehensive, or did important knowledge
+  slip through?
+- Did the cross-reference pass catch all connections?
+
+If any issue was encountered, append an entry to
+`<wiki_dir>/WIKI-SKILL-IMPROVEMENTS.md` (create the file if it doesn't exist):
+
+```markdown
+### [Short title]
+- **Skill:** wiki-ingest
+- **Date:** YYYY-MM-DD
+- **Current behavior:** [What the skill says or doesn't say]
+- **Problem:** [What went wrong or was suboptimal]
+- **Suggested fix:** [Concrete change to the skill's SKILL.md]
+```
+
+When the user runs `/wiki-improve` or asks to "update wiki skills", review
+this file and apply generalizable improvements back to the skill files.
