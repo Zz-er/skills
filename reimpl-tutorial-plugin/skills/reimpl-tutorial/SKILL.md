@@ -211,12 +211,14 @@ echo "All notebooks built."
 
 Before writing a single notebook cell, thoroughly understand the project:
 
-0. **Query the Wiki** — Use `/wiki-query` to check what the Wiki already knows
-   about this project's domain. Look for existing concept pages (algorithms,
-   patterns), entity pages (tools, frameworks, authors), and related analyses.
-   This avoids re-deriving knowledge that's already been synthesized from
-   previous tutorials or sources. Note which wiki pages are relevant — you'll
-   link back to them later.
+0. **Query the Wiki** *(only if `llm-wiki` plugin is installed)* — Check whether
+   `/wiki-query` is available. If it is, use it to check what the Wiki already
+   knows about this project's domain. Look for existing concept pages
+   (algorithms, patterns), entity pages (tools, frameworks, authors), and
+   related analyses. This avoids re-deriving knowledge that's already been
+   synthesized from previous tutorials or sources. Note which wiki pages are
+   relevant — you'll link back to them later. **If `/wiki-query` is not
+   available, skip this step silently.**
 1. **Read every source file.** Map all classes, functions, and their
    relationships. Note which files are central vs. peripheral.
 2. **Trace the main execution path.** Follow a request from entry point to
@@ -434,11 +436,14 @@ project complete**:
 
 This ensures the skill **evolves with every project** that uses it.
 
-### Phase 6 — Wiki Knowledge Sync
+### Phase 6 — Wiki Knowledge Sync *(only if `llm-wiki` plugin is installed)*
+
+**Prerequisite check:** Verify that `/wiki-ingest` is available. If the
+`llm-wiki` plugin is not installed, **skip this entire phase** and inform the
+user: "Wiki sync skipped — llm-wiki plugin not installed."
 
 Sync the tutorial's knowledge into the LLM Wiki **after Phase 4 is complete
-and all quality checks pass**. This step is part of the standard flow — ask
-the user for confirmation before proceeding.
+and all quality checks pass**. Ask the user for confirmation before proceeding.
 
 1. **Run `/wiki-ingest`** — invoke the global wiki-ingest skill, passing the
    path to this tutorial's output directory. The skill handles everything:
@@ -610,7 +615,7 @@ Before declaring the tutorial complete, verify:
 - [ ] Diagrams render correctly in the chosen mode (SVG renders in notebooks, mermaid renders in JupyterLab/GitHub)
 - [ ] `SKILL-IMPROVEMENTS.md` has been maintained throughout the project
 - [ ] Generalizable improvements from `SKILL-IMPROVEMENTS.md` have been applied back to the skill files
-- [ ] Tutorial knowledge has been synced to the LLM Wiki (Phase 6) — or user declined
+- [ ] Tutorial knowledge has been synced to the LLM Wiki (Phase 6) — or user declined — or llm-wiki not installed (skip)
 
 ---
 
