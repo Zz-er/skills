@@ -1,0 +1,8 @@
+{
+  "name": "wiki-tools",
+  "version": "1.0.0",
+  "description": "LLM Wiki global tools: query, update, and ingest knowledge base. Available via /wiki-query, /wiki-update, /wiki-ingest from any project.",
+  "author": {
+    "name": "local"
+  }
+}

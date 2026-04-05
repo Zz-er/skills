@@ -1,0 +1,272 @@
+# LLM Wiki — Schema & Operating Manual
+
+This is a personal knowledge base maintained by an LLM. The human curates sources, directs analysis, and asks questions. The LLM does all the bookkeeping — summarizing, cross-referencing, filing, and maintenance.
+
+## Architecture
+
+```
+llm_wiki/
+├── CLAUDE.md          ← this file (schema & instructions)
+├── raw/               ← immutable source documents (human-curated)
+│   ├── assets/        ← images, PDFs, data files
+│   └── *.md           ← clipped articles, notes, transcripts
+├── wiki/              ← LLM-generated & maintained markdown
+│   ├── index.md       ← master catalog of all wiki pages
+│   ├── log.md         ← chronological record of operations
+│   ├── overview.md    ← high-level synthesis & landing page
+│   ├── sources/       ← one summary page per ingested source
+│   ├── entities/      ← pages for people, organizations, tools, etc.
+│   ├── concepts/      ← pages for ideas, theories, methods, etc.
+│   └── analyses/      ← comparisons, deep-dives, query results worth keeping
+└── .gitignore
+```
+
+## Rules
+
+1. **Never modify files in `raw/`.** They are the source of truth.
+2. **All wiki content goes in `wiki/`.** The LLM owns this directory entirely.
+3. **Always update `wiki/index.md`** after creating or renaming a page.
+4. **Always append to `wiki/log.md`** after every operation (ingest, query, lint).
+5. **Use `[[wikilinks]]`** for cross-references between wiki pages. Format: `[[filename]]` (without path or `.md`). Example: `[[Andrej Karpathy]]`.
+6. **Frontmatter is required** on every wiki page (YAML between `---` fences):
+   ```yaml
+   ---
+   title: Page Title
+   type: source | entity | concept | analysis | overview
+   created: YYYY-MM-DD
+   updated: YYYY-MM-DD
+   tags: [tag1, tag2]
+   sources: [source-filename-1, source-filename-2]
+   ---
+   ```
+7. **Filenames**: use kebab-case for multi-word names (e.g., `transformer-architecture.md`). Keep names concise but descriptive.
+8. **Citations**: when referencing a claim from a raw source, cite it as `[Source: filename]` so the provenance is traceable.
+9. **Flag contradictions explicitly.** If new information contradicts existing wiki content, note it with a `> ⚠️ Contradiction:` callout on both the new and existing pages.
+10. **Chinese by default.** Write wiki content in Chinese (简体中文) unless the source material is in English and the user requests English output. Match the user's language in conversation.
+
+## Workflows
+
+### Ingest (processing a new source)
+
+When the user adds a source to `raw/` and asks you to ingest it:
+
+1. **Read** the source document fully.
+2. **Discuss** key takeaways with the user (brief summary, what's interesting, any surprises).
+3. **Create a source summary page** in `wiki/sources/`:
+   - Filename: slugified version of the source title
+   - Include: title, author, date, key claims, notable quotes, relevance to existing wiki topics
+4. **Update existing pages** across the wiki:
+   - Add new information to relevant entity and concept pages
+   - Create new entity/concept pages if the source introduces important new topics
+   - Update cross-references (wikilinks) on all affected pages
+   - Flag any contradictions with existing content
+5. **Update `wiki/index.md`** — add the new page(s) with one-line summaries.
+6. **Append to `wiki/log.md`**:
+   ```
+   ## [YYYY-MM-DD] ingest | Source Title
+   - Source: `raw/filename.md`
+   - Pages created: [list]
+   - Pages updated: [list]
+   - Key takeaways: [1-2 sentences]
+   ```
+
+### Query (answering questions)
+
+When the user asks a question:
+
+1. **Read `wiki/index.md`** to find relevant pages.
+2. **Read the relevant wiki pages** (not raw sources — the wiki should have what you need).
+3. **Synthesize an answer** with citations to wiki pages and ultimately raw sources.
+4. **If the answer is substantial and reusable**, offer to file it as a new analysis page in `wiki/analyses/`.
+5. **Append to `wiki/log.md`**:
+   ```
+   ## [YYYY-MM-DD] query | Brief question summary
+   - Pages consulted: [list]
+   - Filed as: [page name, if applicable]
+   ```
+
+### Reimpl-Tutorial Ingest (手撕项目知识同步)
+
+When a `reimpl-tutorial` project is completed and the user wants to sync its
+knowledge into the Wiki (or when you detect a completed tutorial project and
+the user confirms):
+
+1. **Locate the tutorial output** — find the `<project>-from-scratch/` directory.
+2. **Read key files**:
+   - `SUMMARY.md` — list of all notebooks and what they cover
+   - `references/papers.md` — cited papers and sources
+   - `README.md` — project overview
+   - Scan `notebooks/` markdown cells for core concepts and design decisions
+3. **Create a source summary page** in `wiki/sources/`:
+   - Filename: `reimpl-<project-name>.md`
+   - Treat the entire tutorial as a single source with sub-sections per notebook
+   - Include: project overview, list of notebooks, key concepts covered,
+     notable design decisions, running example description
+4. **Create/update concept pages** in `wiki/concepts/`:
+   - One page per core concept taught in the tutorial (algorithms, patterns,
+     data structures, mathematical foundations)
+   - Include: explanation, formula derivations (cite the notebook), connections
+     to other concepts across the wiki
+   - If a concept page already exists, **update** it with new evidence from
+     this tutorial rather than creating a duplicate
+5. **Create/update entity pages** in `wiki/entities/`:
+   - Pages for: the original project, key authors/contributors, frameworks/tools
+     used, papers cited
+   - Cross-reference with existing entity pages
+6. **Create an analysis page** in `wiki/analyses/`:
+   - Filename: `reimpl-<project-name>-insights.md`
+   - Capture: design decisions and their rationale, architecture patterns,
+     interesting trade-offs, lessons learned from SKILL-IMPROVEMENTS.md
+7. **Update `wiki/index.md`** — add all new pages.
+8. **Append to `wiki/log.md`**:
+   ```
+   ## [YYYY-MM-DD] reimpl-ingest | Project Name
+   - Tutorial: `path/to/<project>-from-scratch/`
+   - Notebooks: [count]
+   - Pages created: [list]
+   - Pages updated: [list]
+   - Key concepts added: [list]
+   - Key entities added: [list]
+   ```
+
+### Lint (health check)
+
+When the user asks for a lint/health check, or periodically on your own initiative:
+
+1. **Check for orphan pages** — wiki pages with no inbound links.
+2. **Check for broken wikilinks** — links pointing to nonexistent pages.
+3. **Check for stale content** — pages not updated despite newer sources covering the same topic.
+4. **Check for missing pages** — concepts or entities frequently mentioned but lacking dedicated pages.
+5. **Check for contradictions** — claims that conflict across pages.
+6. **Suggest improvements** — new questions to investigate, sources to look for, pages to split or merge.
+7. **Append to `wiki/log.md`**:
+   ```
+   ## [YYYY-MM-DD] lint | Health check
+   - Issues found: [count]
+   - [List of issues and actions taken/recommended]
+   ```
+
+## Page Templates
+
+### Source Summary (`wiki/sources/`)
+```markdown
+---
+title: "Source Title"
+type: source
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+tags: []
+sources: [raw-filename]
+---
+
+# Source Title
+
+**Author:** ...
+**Date:** ...
+**URL:** ... (if applicable)
+
+## Summary
+[2-3 paragraph summary of the source]
+
+## Key Claims
+- ...
+
+## Notable Quotes
+> "..."
+
+## Connections
+- Related to: [[concept-page]], [[entity-page]]
+- Contradicts/supports: ...
+```
+
+### Entity Page (`wiki/entities/`)
+```markdown
+---
+title: "Entity Name"
+type: entity
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+tags: []
+sources: [source1, source2]
+---
+
+# Entity Name
+
+[Description paragraph]
+
+## Key Facts
+- ...
+
+## Appearances in Sources
+- [[source-1]]: [what was said]
+- [[source-2]]: [what was said]
+
+## Related
+- [[other-entity]], [[concept]]
+```
+
+### Concept Page (`wiki/concepts/`)
+```markdown
+---
+title: "Concept Name"
+type: concept
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+tags: []
+sources: [source1, source2]
+---
+
+# Concept Name
+
+[Explanation paragraph]
+
+## Details
+...
+
+## Evidence & Sources
+- [[source-1]]: [supporting/contradicting evidence]
+
+## Related Concepts
+- [[other-concept]]
+```
+
+### Analysis Page (`wiki/analyses/`)
+```markdown
+---
+title: "Analysis Title"
+type: analysis
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+tags: []
+sources: [sources-consulted]
+---
+
+# Analysis Title
+
+## Question
+[The question or topic being analyzed]
+
+## Analysis
+[The synthesis / comparison / deep-dive]
+
+## Conclusions
+- ...
+
+## Sources Consulted
+- [[source-1]], [[concept-1]], ...
+```
+
+## Navigation
+
+- Start from `wiki/index.md` to find any page.
+- Use `wiki/log.md` to see recent activity.
+- Use `wiki/overview.md` for the big picture.
+- Follow `[[wikilinks]]` to traverse related content.
+
+## Tips for the LLM
+
+- When in doubt, create a page. It's cheap to create and expensive to lose information.
+- Prefer updating existing pages over creating duplicates.
+- Keep source summary pages factual; save interpretation for concept and analysis pages.
+- When a page grows beyond ~300 lines, consider splitting it.
+- Re-read `wiki/index.md` at the start of every session to refresh your understanding of what exists.
