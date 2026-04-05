@@ -1,49 +1,65 @@
-# LLM Wiki — Portable Installer
+# llm-wiki-plugin
 
 A personal knowledge base maintained by an LLM. Based on [Karpathy's LLM Wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f).
 
-## Quick Start
+Provides three global skills: `/wiki-query`, `/wiki-update`, `/wiki-ingest` — accessible from any project.
+
+## Skills Included
+
+| Skill | Trigger | What it does |
+|-------|---------|-------------|
+| **wiki-query** | "check the wiki", "查查知识库" | Search and read from the wiki |
+| **wiki-update** | "add to wiki", "写入wiki" | Create or update wiki pages |
+| **wiki-ingest** | "sync to wiki", "导入知识库" | Import a completed tutorial or source document |
+
+## Installation
+
+### Via Claude Code Plugin Marketplace (recommended)
 
 ```bash
-# Clone or copy this directory to your new machine, then:
-cd portable/
-python install.py ~/my-wiki     # or any path you prefer
+# 1. Add this repo as a marketplace source
+claude plugin marketplace add https://github.com/Zz-er/skills
 
-# In Claude Code:
-/reload-plugins
+# 2. Install the plugin
+claude plugin install wiki-tools
+
+# 3. Configure your wiki location
+echo '{ "wiki_dir": "/path/to/your/wiki" }' > ~/.claude/wiki-tools.json
 ```
 
-Works on **Linux, macOS, and Windows**.
+To update later:
 
-## What Gets Installed
+```bash
+claude plugin update wiki-tools
+```
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| Wiki repo | `<your-path>/` | Directory structure, CLAUDE.md schema, seed files |
-| Wiki config | `~/.claude/wiki-tools.json` | Stores wiki path for all skills |
-| wiki-tools plugin | Via `claude plugin install` | Global `/wiki-query`, `/wiki-update`, `/wiki-ingest` skills |
-| Marketplace | `llm-wiki` local marketplace | Enables plugin updates via `claude plugin update wiki-tools` |
-| Recommended plugins | Claude Code global | commit-commands, context7, hookify, etc. |
+### First-time Wiki Setup
+
+If you don't have a wiki directory yet, use the bundled installer to scaffold one:
+
+```bash
+# Clone the repo
+git clone https://github.com/Zz-er/skills.git /tmp/skills
+
+# Run the installer — creates directory structure, CLAUDE.md schema, seed files
+cd /tmp/skills/llm-wiki-plugin
+python install.py ~/my-wiki
+```
+
+The installer will:
+- Create the wiki directory with `raw/`, `wiki/`, templates, and `CLAUDE.md`
+- Write `~/.claude/wiki-tools.json` pointing to your wiki path
+- Install the plugin via marketplace
 
 ## How Paths Work
 
-The installer writes the wiki location to `~/.claude/wiki-tools.json`:
+All skills read the wiki location from `~/.claude/wiki-tools.json`:
 
 ```json
 { "wiki_dir": "/home/alice/my-wiki" }
 ```
 
-All skills read this config at runtime. To change the wiki path, just edit this file — no reinstall needed.
-
-## Global Skills
-
-These work from **any project**, not just the wiki directory:
-
-| Skill | Trigger | What it does |
-|-------|---------|-------------|
-| `/wiki-query` | "check the wiki", "查查知识库" | Search and read from the wiki |
-| `/wiki-update` | "add to wiki", "写入wiki" | Create or update wiki pages |
-| `/wiki-ingest` | "sync to wiki", "导入知识库" | Import a completed tutorial project |
+To change the wiki path, just edit this file — no reinstall needed.
 
 ## Core Workflows
 
@@ -58,7 +74,7 @@ Ask Claude for a health check. It finds orphan pages, broken links, contradictio
 
 ## Integration with reimpl-tutorial
 
-If you use the `reimpl-tutorial` skill, run the patch script to add Wiki integration:
+If you also use the `reimpl-tutorial` plugin, run the patch script to add Wiki integration:
 
 ```bash
 python patch_reimpl_tutorial.py                          # auto-detect skill location
@@ -70,12 +86,27 @@ This adds:
 - **Phase 6** — syncs tutorial knowledge back into the wiki after completion
 - **Quality checklist** — wiki sync verification item
 
-The patch is idempotent — safe to run multiple times. The installer also auto-detects and offers to patch if reimpl-tutorial is found.
+The patch is idempotent — safe to run multiple times.
 
-## Updating the Plugin
+## Plugin Structure
 
-```bash
-claude plugin update wiki-tools
+```
+llm-wiki-plugin/
+├── .claude-plugin/marketplace.json
+├── README.md
+├── install.py                         # First-time wiki scaffolding
+├── uninstall.py                       # Clean removal
+├── patch_reimpl_tutorial.py           # Optional reimpl-tutorial integration
+├── plugins/wiki-tools/
+│   ├── .claude-plugin/plugin.json
+│   └── skills/
+│       ├── wiki-query/SKILL.md
+│       ├── wiki-update/SKILL.md
+│       └── wiki-ingest/SKILL.md
+└── templates/                         # Wiki directory templates
+    ├── CLAUDE.md.tmpl
+    ├── gitignore.tmpl
+    └── wiki/*.md.tmpl
 ```
 
 ## Uninstall
@@ -90,3 +121,7 @@ python uninstall.py --all ~/my-wiki        # remove everything
 - Python 3.6+
 - [Claude Code](https://claude.ai/claude-code) CLI
 - `git` (for version history)
+
+## License
+
+MIT
