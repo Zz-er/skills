@@ -71,11 +71,14 @@ contradictions, and gaps.
 
 ## Integration with reimpl-tutorial
 
-If you also use the `reimpl-tutorial` plugin, the wiki skills integrate
-automatically:
+During `/wiki-init`, if the `reimpl-tutorial` plugin is detected, you'll be
+asked whether to add wiki integration. If you agree, it adds:
 
 - **Phase 1 Step 0** — `wiki-query` checks for existing knowledge before analysis
 - **Phase 6** — `wiki-ingest` syncs tutorial knowledge back into the wiki
+- **Quality checklist** — wiki sync verification item
+
+Already-integrated skills are detected and skipped automatically.
 
 ## Plugin Structure
 
@@ -86,12 +89,12 @@ llm-wiki-plugin/
 ├── plugins/wiki-tools/
 │   ├── .claude-plugin/plugin.json
 │   └── skills/
-│       ├── wiki-init/SKILL.md       # Create new wiki
+│       ├── wiki-init/SKILL.md       # Create new wiki + detect integrations
 │       ├── wiki-query/SKILL.md      # Search wiki
 │       ├── wiki-update/SKILL.md     # Update wiki pages
 │       └── wiki-ingest/SKILL.md     # Import sources
-└── templates/                       # Wiki directory templates
-    ├── CLAUDE.md.tmpl               #   (used by wiki-init)
+└── templates/                       # Wiki directory templates (used by wiki-init)
+    ├── CLAUDE.md.tmpl
     ├── gitignore.tmpl
     └── wiki/*.md.tmpl
 ```
