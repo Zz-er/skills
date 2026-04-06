@@ -26,7 +26,7 @@ claude plugin marketplace add https://github.com/Zz-er/skills
 claude plugin install wiki-tools
 ```
 
-That's it. All four skills are now globally available.
+That's it. All five skills are now globally available.
 
 ### First-time Wiki Setup
 
@@ -60,8 +60,15 @@ edit it directly — no reinstall needed.
 ## Core Workflows
 
 ### Ingest
-Drop a document into `raw/`, tell Claude "ingest this". It reads, summarizes,
-creates wiki pages, updates cross-references.
+Analyze a project directory and sync its knowledge into the wiki:
+
+```
+/wiki-ingest              # analyze current directory
+/wiki-ingest /path/to/proj  # analyze a specific directory
+```
+
+It reads source code, docs, notebooks, etc., then creates wiki pages with
+cross-references.
 
 ### Query
 Ask Claude any question. It searches the wiki, synthesizes an answer with citations.

@@ -27,13 +27,18 @@ All paths below are relative to this `wiki_dir`.
 
 ## Input
 
-The user provides a path to a completed `<project>-from-scratch/` directory.
-If no path is given, search for recent tutorial output directories under the
-current workspace.
+Two usage modes:
+
+- **`/wiki-ingest`** — analyze the current working directory
+- **`/wiki-ingest /path/to/project`** — analyze the specified directory
+
+If no path is given, use the current working directory. The target can be any
+project directory — a completed reimpl-tutorial, a regular codebase, a
+documentation folder, etc.
 
 ## Prerequisites
 
-- `~/.claude/wiki-tools.json` must exist (created by install.py)
+- `~/.claude/wiki-tools.json` must exist (created by `/wiki-init`)
 - The tutorial project must have completed at least through Phase 4
   (SUMMARY.md and notebooks/ must exist)
 
@@ -86,6 +91,12 @@ Include:
 
 ### Step 4 — Create/Update Concept Pages
 
+**Important:** For a 2nd+ ingest, updating existing pages with new evidence is
+often *more valuable* than creating new ones. Existing concepts gain richer,
+multi-perspective evidence (e.g., a "kernel fusion" page with both compute-bound
+and memory-bound examples is far stronger than either alone). Prioritize updates
+alongside creation.
+
 For each core concept identified in Step 1:
 
 1. Check `wiki/index.md` — does a page already exist for this concept?
@@ -93,6 +104,7 @@ For each core concept identified in Step 1:
    - Add a new entry under "Evidence & Sources" citing this tutorial
    - Update the description if the tutorial provides deeper insight
    - Add new `[[wikilinks]]` to related concepts from the same tutorial
+   - Add the new source to the `sources:` frontmatter list
 3. If **no**: create a new page in `wiki/concepts/`
    - Use the Wiki's concept template
    - Include: explanation from the tutorial, formula (if any), source mapping
@@ -156,12 +168,17 @@ Include:
 
 ### Step 8 — Cross-Reference Pass
 
-Do a final pass across all wiki pages:
+Do a final pass across all wiki pages. For a 2nd+ ingest, this is one of the
+most valuable steps — it weaves the new knowledge into the existing graph.
 
 1. Search for mentions of concepts/entities from this tutorial in existing pages
 2. Add `[[wikilinks]]` wherever relevant connections are missing
-3. Flag any contradictions between this tutorial's findings and existing content
-4. Check if any existing orphan pages are now connected through the new content
+3. Update `sources:` frontmatter lists on existing pages that now have evidence
+   from this tutorial
+4. Flag any contradictions between this tutorial's findings and existing content
+5. Check if any existing orphan pages are now connected through the new content
+6. In the analysis page, include a comparison section showing how this tutorial
+   relates to and complements existing sources in the wiki
 
 ## Output
 
