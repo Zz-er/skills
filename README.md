@@ -1,0 +1,75 @@
+# Skills
+
+A Claude Code plugin marketplace containing productivity tools for knowledge management and deep learning.
+
+## Installation
+
+```bash
+claude plugin marketplace add https://github.com/Zz-er/skills
+```
+
+Then install the plugins you need:
+
+```bash
+claude plugin install wiki-tools
+claude plugin install reimpl-tutorial
+```
+
+## Plugins
+
+### wiki-tools
+
+A personal knowledge base system inspired by Andrej Karpathy's LLM Wiki pattern. Maintains a persistent, cross-referenced collection of markdown pages.
+
+**Skills:**
+
+| Skill | Description |
+|-------|-------------|
+| `/wiki-init` | Initialize a new wiki directory with full structure, schema, and seed files |
+| `/wiki-query` | Search and retrieve existing knowledge from the wiki |
+| `/wiki-update` | Add new pages or update existing wiki content |
+| `/wiki-ingest` | Import a project or tutorial into the wiki, extracting concepts and entities |
+| `/wiki-improve` | Review and apply accumulated skill improvement suggestions |
+
+**Quick start:**
+
+```
+/wiki-init ~/my-wiki
+/wiki-query "transformer attention mechanism"
+/wiki-update
+/wiki-ingest /path/to/project
+```
+
+See [llm-wiki-plugin/README.md](llm-wiki-plugin/README.md) for details.
+
+### reimpl-tutorial
+
+Generate "from zero to expert" tutorials by deeply analyzing a project and reimplementing it from scratch in Jupyter notebooks. Teaches how systems work by rebuilding them step-by-step in cognitive learning order.
+
+**Skills:**
+
+| Skill | Description |
+|-------|-------------|
+| `/reimpl-tutorial` | Analyze a project and generate incremental reimplementation notebooks |
+| `/excalidraw-diagram` | Generate Excalidraw diagrams and export as SVG for notebook embedding |
+
+**Workflow:**
+
+1. Deep analysis of the target project
+2. Cognitive ordering of features (foundation -> core -> advanced)
+3. Incremental notebook generation with theory, implementation, and verification
+4. Integration testing and summary generation
+5. Optional wiki knowledge sync (if wiki-tools is installed)
+
+See [reimpl-tutorial-plugin/README.md](reimpl-tutorial-plugin/README.md) for details.
+
+## Plugin Integration
+
+When both plugins are installed, they work together:
+
+- `/reimpl-tutorial` queries the wiki before analysis to leverage existing knowledge
+- Completed tutorials are automatically synced back to the wiki via `/wiki-ingest`
+
+## License
+
+MIT
