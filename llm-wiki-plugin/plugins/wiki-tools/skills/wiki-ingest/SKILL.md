@@ -180,6 +180,27 @@ most valuable steps — it weaves the new knowledge into the existing graph.
 6. In the analysis page, include a comparison section showing how this tutorial
    relates to and complements existing sources in the wiki
 
+### Step 9 — Git Commit & Push
+
+Read `auto_commit` from `~/.claude/wiki-tools.json` (default: `"ask"`):
+
+| Value | Behavior |
+|-------|----------|
+| `"never"` | Skip this step entirely |
+| `"ask"` | Ask the user whether to commit and push |
+| `"always"` | Automatically commit and push without asking |
+
+If committing:
+
+```bash
+cd <wiki_dir>
+git add wiki/
+git commit -m "[wiki-ingest] <source-title> — <N> pages created, <M> updated"
+```
+
+If pushing, run `git push` after the commit. Use a descriptive commit message
+summarizing what was ingested and the scope of changes.
+
 ## Output
 
 After completion, report to the user:

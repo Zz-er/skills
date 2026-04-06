@@ -104,11 +104,35 @@ Append to `<wiki_dir>/wiki/log.md`:
 - Skills modified: [list of skill names]
 ```
 
-### Step 7 — Sync to Remote *(optional)*
+### Step 7 — Git Commit & Push
 
-If the wiki skill files live in a git repo (check if the plugin directory has
-a `.git` directory or is a symlink to a git-tracked directory), ask the user
-whether to commit and push the changes.
+Read `auto_commit` from `~/.claude/wiki-tools.json` (default: `"ask"`):
+
+| Value | Behavior |
+|-------|----------|
+| `"never"` | Skip this step entirely |
+| `"ask"` | Ask the user whether to commit and push |
+| `"always"` | Automatically commit and push without asking |
+
+If committing, commit changes to both the wiki and the skill files:
+
+1. **Wiki directory** — if modified:
+
+```bash
+cd <wiki_dir>
+git add wiki/ WIKI-SKILL-IMPROVEMENTS.md
+git commit -m "[wiki-improve] Applied <N> skill improvements"
+```
+
+2. **Plugin directory** — if skill files were modified:
+
+```bash
+cd <plugin_dir>
+git add -A
+git commit -m "[wiki-improve] Applied <N> generalizable improvements to skill files"
+```
+
+If pushing, run `git push` after each commit.
 
 ## When to Trigger
 

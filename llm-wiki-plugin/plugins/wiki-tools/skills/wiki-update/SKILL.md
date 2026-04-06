@@ -99,6 +99,28 @@ When adding new knowledge, check if it connects to existing pages:
 3. **Update `wiki/overview.md`** if the new knowledge significantly changes
    the big picture
 
+### Step 6 — Git Commit & Push
+
+Read `auto_commit` from `~/.claude/wiki-tools.json` (default: `"ask"`):
+
+| Value | Behavior |
+|-------|----------|
+| `"never"` | Skip this step entirely |
+| `"ask"` | Ask the user whether to commit and push |
+| `"always"` | Automatically commit and push without asking |
+
+If committing:
+
+```bash
+cd <wiki_dir>
+git add wiki/
+git commit -m "[wiki-update] <brief-description> — <N> pages created, <M> updated"
+```
+
+If pushing, run `git push` after the commit. Use a descriptive commit message
+summarizing the knowledge added. For bulk operations, create a single commit
+at the end.
+
 ## Bulk Operations
 
 When syncing a large amount of knowledge (e.g., from a completed tutorial):
