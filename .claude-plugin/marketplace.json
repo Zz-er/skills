@@ -1,0 +1,22 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "skills",
+  "description": "A collection of Claude Code plugins: LLM Wiki knowledge base tools and reimpl-tutorial for deep codebase understanding",
+  "owner": {
+    "name": "Zz-er"
+  },
+  "plugins": [
+    {
+      "name": "wiki-tools",
+      "description": "Query, update, and ingest knowledge into a personal LLM Wiki. Provides /wiki-query, /wiki-update, /wiki-ingest skills globally.",
+      "source": "./llm-wiki-plugin/plugins/wiki-tools",
+      "category": "productivity"
+    },
+    {
+      "name": "reimpl-tutorial",
+      "description": "Generate 'from zero to expert' tutorials by reimplementing projects in Jupyter notebooks. Includes excalidraw-diagram skill for SVG diagram generation.",
+      "source": "./reimpl-tutorial-plugin",
+      "category": "productivity"
+    }
+  ]
+}
