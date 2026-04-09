@@ -342,15 +342,21 @@ For each feature in cognitive order, create a notebook that:
    step-by-step with LaTeX. Cite the original paper or source. **Every formula
    must include a concrete numerical example and a life analogy** (see
    `prompts/derivation-prompt.md`).
-3. **Implements the feature** — Clean Python with inline comments explaining
+3. **Walks through the code logic** — Before showing real code, explain in
+   plain language what the implementation will do, step by step. Use analogies,
+   pseudocode, and the running example to help the reader build a mental model.
+   When a Theory section exists, explicitly map math symbols to the code plan.
+   Skip only for trivially simple features (1-2 line implementations). See
+   `prompts/walkthrough-prompt.md`.
+4. **Implements the feature** — Clean Python with inline comments explaining
    each decision. Reference the original source file and line numbers.
-4. **Adds tests** — Show which original tests now pass. Run them in the
+5. **Adds tests** — Show which original tests now pass. Run them in the
    notebook.
-5. **Visualizes behavior** — A plot, diagram, or printed trace that makes the
+6. **Visualizes behavior** — A plot, diagram, or printed trace that makes the
    feature's effect concrete.
-6. **Includes a source mapping table** — A table showing "Our Implementation
+7. **Includes a source mapping table** — A table showing "Our Implementation
    vs. Original Source" so readers can cross-reference.
-7. **Updates `our-implementation/`** — Write the clean module code that all
+8. **Updates `our-implementation/`** — Write the clean module code that all
    subsequent notebooks will import (incremental mode only). There are two
    strategies:
 
@@ -603,6 +609,8 @@ Before declaring the tutorial complete, verify:
 - [ ] **Usage tutorial mode**: every notebook has inline verification cells (asserts, test functions) that pass
 - [ ] Every non-obvious formula has a step-by-step derivation
 - [ ] Every formula includes a **concrete numerical example** and a **life analogy**
+- [ ] Every non-trivial feature has a **code walkthrough** section before the implementation
+- [ ] Code walkthroughs use plain language, analogies, and step-by-step breakdowns (not just restating code)
 - [ ] Every significant design decision has a "why" comment or explanation
 - [ ] All papers and external sources are cited in `references/papers.md`
 - [ ] All code cells run top-to-bottom without errors
@@ -631,6 +639,8 @@ Before declaring the tutorial complete, verify:
   your analysis.
 - **`prompts/derivation-prompt.md`** — How to write rigorous theory sections
   with full derivations.
+- **`prompts/walkthrough-prompt.md`** — How to write plain-language code
+  walkthroughs that bridge problem/theory to implementation.
 - **`scripts/extract-tests.py`** — Copies the original project's tests into
   `original-tests/` with correct import paths.
 - **`scripts/run-tests.py`** — Runs the test suite against `our-implementation/`

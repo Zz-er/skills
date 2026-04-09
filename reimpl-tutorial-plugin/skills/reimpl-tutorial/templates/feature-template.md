@@ -112,7 +112,82 @@ readers rely on these to build intuition.
 
 ---
 
-### Cell 5 — Implementation (Code)
+### Cell 5 — Code Walkthrough (Markdown) [QUASI-MANDATORY]
+
+Walk through the implementation logic in plain language **before** showing
+real code. This cell bridges problem/theory → implementation, helping the
+reader build a mental model before encountering syntax. Skip ONLY for
+trivially simple features (1-2 line implementations like a constant
+definition or simple re-export).
+
+See `prompts/walkthrough-prompt.md` for full guidance.
+
+```markdown
+## 代码思路拆解 / Code Walkthrough
+
+> 在看具体代码之前，我们先用大白话把思路理清楚。
+> Before diving into code, let's walk through the logic in plain language.
+
+### 我们要做什么？ / What Are We Building?
+
+[One sentence: what this code accomplishes in everyday terms.]
+
+> **类比 / Analogy:** [A familiar real-world process that mirrors the code's
+> workflow. e.g., "This is like a post office sorting room — letters arrive,
+> get categorized by zip code, and placed into the right delivery bag."]
+
+### 分步拆解 / Step-by-Step Breakdown
+
+**Step 1: [Action in plain language]**
+[1-3 sentences explaining what happens and why. Use "我们" / "we" voice.]
+
+**Step 2: [Action in plain language]**
+[Continue the logical flow. Each step is a natural consequence of the last.]
+
+**Step 3: ...**
+
+> **伪代码 / Pseudocode** (optional, for intricate logic):
+> ```
+> function do_the_thing(input):
+>     for each item in input:
+>         if item matches criteria:
+>             transform it
+>             add to results
+>     return results
+> ```
+
+### 需要注意的地方 / Things to Watch For
+
+- **[Edge case or subtlety]**: [Why it matters and how we handle it]
+- **[Design choice]**: We use X instead of Y because [reason]
+
+### 数据怎么流动？ / How Does Data Flow? (optional)
+
+> Input (dict) → validate → merge defaults → frozen Config object
+
+### 和理论的对应 / Mapping to Theory (only when Cell 4 exists)
+
+> - 推导中的 $\phi(x)$ → Step 2 里的 `feature_descriptor()` 函数
+> - 网格 $\mathcal{B}$ → Step 1 里的 Python dict
+```
+
+**GUIDELINES for writing good walkthroughs:**
+
+1. **大白话优先 / Plain language first** — If a 15-year-old couldn't follow
+   the explanation, simplify it. Avoid jargon; define technical terms inline.
+2. **Process, not structure** — Describe what *happens* (verbs, data movement),
+   not what *exists* (class hierarchies, type signatures).
+3. **深入浅出 / Simple surface, deep core** — Start with one-sentence summary,
+   then analogy, then detailed steps. Three layers of increasing depth.
+4. **Foreshadow design decisions** — Preview non-obvious choices: "We'll use
+   a dictionary because we need O(1) lookup by feature descriptor."
+5. **Use the running example** — Ground steps in the tutorial's running example.
+6. **Keep it concise** — Simple features: ~150 words. Complex: ~300-400 words.
+   Never exceed the implementation code's length.
+
+---
+
+### Cell 6 — Implementation (Code)
 
 ```python
 # FEATURE: [Feature Name]
@@ -137,7 +212,7 @@ def feature_function(arg: type) -> return_type:
 
 ---
 
-### Cell 6 — Demo / Visualization (Code)
+### Cell 7 — Demo / Visualization (Code)
 
 ```python
 # Make the feature's behavior visible and concrete.
@@ -156,7 +231,7 @@ plt.show()
 
 ---
 
-### Cell 7 — Update our-implementation/ (Code)
+### Cell 8 — Update our-implementation/ (Code)
 
 ```python
 # Write the implementation to the module file so future notebooks can import it.
@@ -165,7 +240,7 @@ plt.show()
 
 ---
 
-### Cell 8 — Source Mapping Table (Markdown) — MANDATORY
+### Cell 9 — Source Mapping Table (Markdown) — MANDATORY
 
 ```markdown
 ## Our Implementation vs. Original Source
@@ -182,7 +257,7 @@ cross-reference with the original codebase.
 
 ---
 
-### Cell 9 — Verification (Code)
+### Cell 10 — Verification (Code)
 
 ```python
 import subprocess, sys
@@ -200,7 +275,7 @@ print("\n✓ All tests for this feature pass!")
 
 ---
 
-### Cell 10 — What We Built (Markdown)
+### Cell 11 — What We Built (Markdown)
 
 ```markdown
 ## Summary
@@ -223,6 +298,7 @@ we'll tackle [next problem], which becomes necessary once we have [this feature]
 # [ ] All code cells run top-to-bottom without error
 # [ ] Verification cell shows tests passing
 # [ ] our-implementation/ updated with new code
+# [ ] Code walkthrough present for non-trivial features (plain language, analogies, steps)
 # [ ] Theory section cites original source (paper or file:line)
 # [ ] Every formula has a concrete numerical example AND a life analogy
 # [ ] Source mapping table present (Our Implementation vs. Original)
