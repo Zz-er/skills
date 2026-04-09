@@ -112,6 +112,12 @@ function code(source) {
 md(`# Chapter Title\n\nMarkdown with "中文引号" and $LaTeX$ — safe inside JS template literals.`);
 code(`print("Hello")`);
 
+// Kernel metadata — adapt to the tutorial language (Phase 1.6)
+// Python:     { display_name: 'Python 3', language: 'python', name: 'python3' }
+// Go:         { display_name: 'Go', language: 'go', name: 'gophernotes' }
+// Rust:       { display_name: 'Rust', language: 'rust', name: 'rust' }
+// JavaScript: { display_name: 'JavaScript (Node)', language: 'javascript', name: 'javascript' }
+// For other languages or explanatory-only mode, default to python3 as container.
 const notebook = {
   nbformat: 4, nbformat_minor: 5,
   metadata: { kernelspec: { display_name: 'Python 3', language: 'python', name: 'python3' },
@@ -286,6 +292,13 @@ Before writing a single notebook cell, thoroughly understand the project:
      each notebook contains its own inline verification.
    This classification affects Phase 1 Step 5, Phase 3, and the output
    directory structure.
+8. **Detect the project's primary language and toolchain.** Identify:
+   - Primary language (by file count and LOC): e.g., Python, Go, Rust, TypeScript
+   - Build system: pip/poetry, cargo, go mod, npm/yarn, maven/gradle
+   - Test framework: pytest, go test, cargo test, jest/vitest, junit
+   - Whether a Jupyter kernel exists for this language
+   Store this information — it feeds into Phase 1.6 Tutorial Configuration.
+   See `prompts/analysis-deep.md` Step 1b for details.
 
 See `prompts/analysis-deep.md` for the detailed analysis prompt to follow.
 
@@ -340,6 +353,52 @@ in Phase 3 and in the Notebook Standards section.
 See the `excalidraw-diagram` skill for full Excalidraw JSON authoring
 guidelines, visual patterns, and the render-validate loop.
 
+### Phase 1.6 — Tutorial Configuration
+
+**Ask the user** two configuration questions. Present the detected language
+(from Phase 1 Step 8) and default choices:
+
+#### Q1: Tutorial Code Language
+
+1. **Project's native language (recommended)** — Tutorial code uses the same
+   language as the project. If the project is Python, this is identical to
+   option 2. For Go, Rust, TypeScript, etc., the tutorial code will be in that
+   language. This preserves idiomatic patterns and lets readers directly
+   cross-reference with the original source.
+2. **Python** — Regardless of the project's language, all tutorial code is
+   rewritten in Python. Suitable when the target audience is primarily Python
+   users, or when the project's language lacks a usable Jupyter kernel.
+
+**Store the user's choice** as `tutorial_language` (e.g., `"python"`, `"go"`,
+`"rust"`, `"typescript"`). This affects:
+- Phase 3: code cell language, import patterns, module file extensions
+- Builder scripts: notebook kernel metadata
+- Scripts: test extraction patterns and test runner commands
+- Output structure: module file extensions, package markers
+
+#### Q2: Code Runnability
+
+1. **Runnable (default, recommended)** — Code cells are executable in Jupyter.
+   Notebooks include setup cells, import paths, and verification cells that
+   run tests. `our-implementation/` is built incrementally and kept runnable.
+2. **Explanatory-only** — Code cells are for reading and learning only, not
+   guaranteed to execute in-notebook. Useful when:
+   - The language has no reliable Jupyter kernel
+   - The project requires a complex runtime environment (Docker, GPU, specific OS)
+   - The tutorial focuses on understanding rather than hands-on execution
+   Verification is replaced by terminal instructions showing how to run tests
+   outside the notebook.
+
+**Store the user's choice** as `code_runnable` (`true` / `false`). This affects:
+- Phase 3: Cell 1 (setup), Cell 8 (module export), Cell 10 (verification)
+- Builder scripts: whether code cells are marked executable
+- Output structure: whether `our-implementation/` is mandatory
+
+**Defaults:** If the project is Python, default to `tutorial_language: python`,
+`code_runnable: true`. For other languages with known Jupyter kernels, default
+to native language + runnable. For languages without kernels, suggest native
+language + explanatory-only.
+
 ### Phase 2 — Cognitive Ordering
 
 Reorder features by learning complexity, not by file location:
@@ -385,29 +444,34 @@ For each feature in cognitive order, create a notebook that:
    When a Theory section exists, explicitly map math symbols to the code plan.
    Skip only for trivially simple features (1-2 line implementations). See
    `prompts/walkthrough-prompt.md`.
-4. **Implements the feature** — Clean Python with inline comments explaining
-   each decision. Reference the original source file and line numbers.
-5. **Adds tests** — Show which original tests now pass. Run them in the
-   notebook.
+4. **Implements the feature** — Clean, idiomatic code in the **tutorial
+   language** (Phase 1.6) with inline comments explaining each decision.
+   Reference the original source file and line numbers.
+5. **Adds tests** — Show which original tests now pass.
+   - **Runnable mode**: Run tests in the notebook (pytest, go test, etc.).
+   - **Explanatory mode**: Provide terminal commands to verify externally.
 6. **Visualizes behavior** — A plot, diagram, or printed trace that makes the
    feature's effect concrete.
 7. **Includes a source mapping table** — A table showing "Our Implementation
    vs. Original Source" so readers can cross-reference.
-8. **Updates `our-implementation/`** — Write the clean module code that all
-   subsequent notebooks will import (incremental mode only). There are two
-   strategies:
+8. **Updates `our-implementation/`** (incremental + runnable mode only) — Write
+   the clean module code that all subsequent notebooks will import. Use the
+   appropriate file extension for the tutorial language (`.py`, `.go`, `.rs`,
+   `.ts`, etc.). There are two strategies:
 
-   - **Strategy A (notebook-runtime save)**: Include a code cell with
-     `open('our-implementation/module.py', 'w').write(...)` that saves the
+   - **Strategy A (notebook-runtime save)**: Include a code cell that saves the
      module when the notebook is executed in Jupyter. Advantage: the save is
      visible to the reader. Disadvantage: requires actually running the notebook.
    - **Strategy B (builder-script save)** *(recommended)*: Add
-     `fs.writeFileSync('../our-implementation/module.py', moduleCode)` at the
+     `fs.writeFileSync('../our-implementation/module.<ext>', moduleCode)` at the
      end of the `_build_nbNN.js` script. Advantage: `our-implementation/` is
      always up to date after building, even if the user never runs the notebook.
 
    You may combine both — the builder script writes the file, and a notebook
    cell also writes it (ensuring consistency when run interactively).
+
+   **Explanatory mode**: `our-implementation/` is optional. If included, it
+   serves as a complete code reference rather than a buildable module.
 
 See `templates/feature-template.md` for the exact notebook structure.
 
@@ -514,16 +578,15 @@ cross-referenced, and available for future tutorials on related topics.
 ├── README.md                        # Setup instructions, reading order
 ├── SUMMARY.md                       # All notebooks with descriptions
 ├── SKILL-IMPROVEMENTS.md            # Skill improvement notes (see Phase 5)
-├── requirements.txt                 # Dependencies to run notebooks
+├── requirements.txt                 # Dependencies (or go.mod, Cargo.toml, package.json, etc.)
 ├── diagrams/                        # SVG mode only: Excalidraw + SVG files
 │   ├── _excalidraw_to_svg.js        #   Converter script
 │   ├── 00-overview.excalidraw       #   Editable source
 │   └── 00-overview.svg              #   Rendered for notebook embedding
-├── original-tests/                  # Reimplementation mode only
-│   └── test_*.py
-├── our-implementation/              # Clean, test-passing reimplementation
-│   ├── __init__.py
-│   └── <modules built incrementally>
+├── original-tests/                  # Reimplementation + runnable mode only
+│   └── test_*.<ext>                 #   .py, _test.go, .test.js, etc.
+├── our-implementation/              # Runnable mode: clean, test-passing reimplementation
+│   └── <modules built incrementally>#   Explanatory mode: optional reference code
 ├── notebooks/
 │   ├── 00-why-this-project.ipynb    # Motivation, problem statement
 │   ├── 01-minimal-viable.ipynb      # Smallest working version
@@ -537,6 +600,14 @@ cross-referenced, and available for future tutorials on related topics.
 └── references/
     └── papers.md                    # Papers and sources cited
 ```
+
+**Language-specific notes:**
+- Python: `our-implementation/` has `__init__.py`, tests use `test_*.py`
+- Go: `our-implementation/` is a Go module, tests use `*_test.go`
+- Rust: `our-implementation/` is a Cargo crate, tests use `#[test]`
+- JavaScript/TypeScript: `our-implementation/` is an npm package, tests use `*.test.js`
+- **Explanatory mode**: `our-implementation/` is optional — include it as a
+  complete reference if helpful, but it need not be runnable from within notebooks
 
 ---
 
@@ -556,10 +627,17 @@ cross-referenced, and available for future tutorials on related topics.
 
 ### Code Cells
 
-- First cell: imports + sys.path setup to find `our-implementation/`
-- Use type hints and docstrings
+- **Runnable mode**: First cell sets up imports and paths to find
+  `our-implementation/`. For Python: `sys.path.insert(0, "..")`. For other
+  languages: use the idiomatic import/module mechanism.
+- **Explanatory mode**: First cell is optional. If present, it introduces the
+  code context without requiring execution.
+- Use the tutorial language's idiomatic style: type hints (Python), type
+  annotations (TypeScript), doc comments (Go/Rust), etc.
 - Put a comment above each non-obvious line explaining the decision
-- Include `assert` statements to verify expected behavior inline
+- **Runnable mode**: Include `assert` statements or test calls to verify
+  expected behavior inline
+- **Explanatory mode**: Include expected output as comments
 
 ### Architecture Diagrams
 
@@ -590,9 +668,10 @@ When building notebooks with the Node.js builder script:
 
 ### Verification Pattern
 
-Each notebook should end with a test cell. Choose the appropriate mode:
+Each notebook should end with a test cell. Choose the appropriate mode based
+on the tutorial language (Phase 1.6) and runnability setting:
 
-**Mode A — Run original tests** (when the test environment is available):
+**Mode A — Run original tests (Python, runnable)**:
 
 ```python
 # --- Verification ---
@@ -607,8 +686,7 @@ assert result.returncode == 0, "Tests failed — check implementation above"
 print("✓ All tests pass for this feature")
 ```
 
-**Mode B — Self-contained assertions** (when original tests depend on complex
-environments like Docker, tmux, specific OS, or external services):
+**Mode B — Self-contained assertions (runnable, any language)**:
 
 ```python
 # --- Self-contained verification ---
@@ -621,6 +699,41 @@ print("✓ All assertions passed")
 
 Mode B is preferred when the original test suite cannot run in a notebook
 context. The assertions should cover the same behaviors as the original tests.
+
+**Mode C — Native test runner (non-Python, runnable)**:
+
+For languages with Jupyter kernels, run the project's native test command:
+
+```python
+# --- Verification (via native test runner) ---
+import subprocess
+result = subprocess.run(
+    ["go", "test", "./...", "-run", "TestFeatureName", "-v"],
+    capture_output=True, text=True, cwd=".."
+)
+print(result.stdout[-3000:])
+assert result.returncode == 0, "Tests failed — check implementation above"
+print("✓ All tests pass for this feature")
+```
+
+Adapt the command for the language: `cargo test`, `npm test`, `go test`, etc.
+
+**Mode D — External verification (explanatory-only mode)**:
+
+Replace the code cell with a markdown cell containing terminal instructions:
+
+```markdown
+## Verification
+
+Run the following in your terminal from the project root:
+
+\```bash
+# [Adapt to project's test runner]
+go test ./... -run TestFeatureName -v
+\```
+
+Expected: all tests related to [feature name] pass.
+```
 
 ### Cross-Notebook References
 
@@ -669,6 +782,11 @@ Before declaring the tutorial complete, verify:
 - [ ] `SKILL-IMPROVEMENTS.md` has been maintained throughout the project
 - [ ] Generalizable improvements from `SKILL-IMPROVEMENTS.md` have been applied back to the skill files
 - [ ] Tutorial knowledge has been synced to the LLM Wiki (Phase 6) — or user declined — or llm-wiki not installed (skip)
+- [ ] Tutorial code language matches user's Phase 1.6 choice throughout all notebooks
+- [ ] Notebook kernel metadata matches the chosen tutorial language
+- [ ] **Runnable mode**: all code cells execute without errors in Jupyter
+- [ ] **Explanatory mode**: all code blocks have correct syntax highlighting and terminal verification instructions
+- [ ] Import patterns and module structure match the tutorial language's idioms
 
 ---
 
@@ -690,6 +808,8 @@ Before declaring the tutorial complete, verify:
   humor patterns, formality spectrum, and concept precision rules. Consult
   before writing any notebook content.
 - **`scripts/extract-tests.py`** — Copies the original project's tests into
-  `original-tests/` with correct import paths.
+  `original-tests/` with correct import paths. Supports `--language` flag for
+  multi-language test file patterns.
 - **`scripts/run-tests.py`** — Runs the test suite against `our-implementation/`
-  and reports pass/fail per feature.
+  and reports pass/fail per feature. Supports `--language` flag for native
+  test runners (pytest, go test, cargo test, etc.).

@@ -52,7 +52,7 @@ For each notebook in order, produce:
 Notebook NN: [Title]
 Feature(s): [feature names from analysis]
 Prerequisite notebooks: [NN-1, ...]
-Tests unlocked: [test_file.py::test_name, ...]
+Tests unlocked: [test file(s) and specific test names — format depends on tutorial language]
 Has theory section: [yes/no — if yes, what math?]
 Running example stage: [describe what the running example can do after this notebook]
 Estimated difficulty: [beginner/intermediate/advanced]
@@ -72,5 +72,5 @@ Before finalizing the order, check:
 - [ ] Every feature is assigned to at least one notebook
 - [ ] No notebook requires knowledge from a later notebook
 - [ ] The running example can be demonstrated by notebook 02
-- [ ] The full test suite passes by the final notebook
+- [ ] The full test suite passes by the final notebook (runnable mode) or all code blocks have correct syntax (explanatory mode)
 - [ ] A newcomer reading notebooks in order will never encounter unexplained jargon

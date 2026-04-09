@@ -16,6 +16,10 @@
 #
 notebook_mode: incremental
 
+# --- Tutorial Configuration (set in Phase 1.6) ---
+tutorial_language: ""     # e.g., "python", "go", "rust", "typescript"
+code_runnable: true       # true = runnable in Jupyter, false = explanatory only
+
 # --- Running Example ---
 # The running example appears in EVERY notebook at every level.
 # Fill in how the example evolves at each level.

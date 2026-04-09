@@ -10,12 +10,15 @@
 
 **File:** `notebooks/NN-feature-name.ipynb`
 **Builds on:** Notebooks 00 through NN-1
-**Tests unlocked:** `original-tests/test_feature_name.py`
+**Tests unlocked:** `original-tests/test_feature_name.<ext>` (adapt extension to tutorial language)
 
 ---
 
 ### Cell 1 — Imports & Setup (Code)
 
+Adapt to the tutorial language and runnability mode (Phase 1.6):
+
+**Python (runnable):**
 ```python
 import sys
 sys.path.insert(0, "..")   # so we can import our-implementation
@@ -26,6 +29,21 @@ import numpy as np
 
 # Our implementation so far
 from our_implementation import ...
+```
+
+**Other languages (runnable)** — use idiomatic imports:
+```go
+// Go example
+import (
+    "our-implementation/module"
+    "testing"
+)
+```
+
+**Explanatory mode** — minimal or no setup; mark code as non-executable:
+```python
+# NOTE: This code is for illustration. See README.md for setup instructions.
+# [imports as needed for readability]
 ```
 
 ---
@@ -253,9 +271,17 @@ plt.show()
 
 ### Cell 8 — Update our-implementation/ (Code)
 
+**Runnable mode (incremental):**
 ```python
 # Write the implementation to the module file so future notebooks can import it.
-# Use %%writefile or manually write the function to the appropriate module.
+# Use the tutorial language's file extension (.py, .go, .rs, .ts, etc.)
+# Preferred: use the builder script's fs.writeFileSync() instead of in-notebook writes.
+```
+
+**Explanatory mode:** Skip this cell, or include a markdown note:
+```markdown
+> The complete implementation for this feature can be found in
+> `our-implementation/module.<ext>`.
 ```
 
 ---
@@ -277,8 +303,12 @@ cross-reference with the original codebase.
 
 ---
 
-### Cell 10 — Verification (Code)
+### Cell 10 — Verification (Code or Markdown)
 
+Choose the verification mode based on Phase 1.6 settings. See SKILL.md
+"Verification Pattern" for all four modes (A/B/C/D).
+
+**Mode A — Python + runnable (pytest):**
 ```python
 import subprocess, sys
 
@@ -291,6 +321,30 @@ result = subprocess.run(
 print(result.stdout[-3000:])
 assert result.returncode == 0, "Tests failed — check implementation above"
 print("\n✓ All tests for this feature pass!")
+```
+
+**Mode C — Non-Python + runnable (native test runner):**
+```python
+import subprocess
+
+result = subprocess.run(
+    ["go", "test", "./...", "-run", "TestFeatureName", "-v"],
+    capture_output=True, text=True, cwd=".."
+)
+print(result.stdout[-3000:])
+assert result.returncode == 0, "Tests failed — check implementation above"
+print("\n✓ All tests for this feature pass!")
+```
+
+**Mode D — Explanatory-only (markdown cell):**
+```markdown
+## Verification
+
+Run in your terminal from the project root:
+\```bash
+[language-specific test command]
+\```
+Expected: all tests for [feature name] pass.
 ```
 
 ---
@@ -331,3 +385,5 @@ we'll tackle [next problem], which becomes necessary once we have [this feature]
 # [ ] Mermaid diagrams are in markdown cells (never code cells)
 # [ ] .ipynb passes JSON validation (node -e "JSON.parse(...)")
 # [ ] Tone varies appropriately between cells (see prompts/style-guide.md §2)
+# [ ] Code language matches tutorial configuration (Phase 1.6)
+# [ ] Verification mode matches runnability setting (runnable → code cell, explanatory → markdown)
