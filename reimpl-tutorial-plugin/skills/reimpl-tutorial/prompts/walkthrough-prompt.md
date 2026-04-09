@@ -178,6 +178,27 @@ where the details are heading.
 
 ---
 
+## Tone & Voice in Walkthroughs
+
+The walkthrough is where the narrator's personality is most visible. This is
+the "knowledgeable friend" zone — Register 2-3 on the formality spectrum
+(see `prompts/style-guide.md` §2).
+
+Techniques that work especially well here:
+- **Rhetorical questions**: "那问题来了，数据从哪来？" / "So where does the data come from?"
+- **Reader empathy**: "看到这里你可能有点懵，没关系" / "If this feels fuzzy, that's normal"
+- **Dramatic foreshadowing**: "接下来这一步是关键——搞砸了整个系统就废了"
+- **Payoff confirmation**: "（是的，就是这么简单）" / "(yes, it really is that simple)"
+- **Colloquial transitions**: "说白了就是..."、"换句话说..." (see `prompts/style-guide.md` §5)
+
+Do NOT put humor in the pseudocode or the data flow diagram — those must be
+precise. Humor belongs in the transitions and commentary between technical
+content.
+
+See `prompts/style-guide.md` for full voice definition and anti-patterns.
+
+---
+
 ## Relationship to Other Notebook Sections
 
 | Section | Answers | Example |
@@ -225,6 +246,12 @@ The walkthrough SHOULD:
    - Ground each step in the tutorial's running example:
      "在我们的排序例子里，Step 2 会拿到冒泡排序程序，计算它的
      [速度, 正确率] 特征描述符"
+
+7. **Monotone delivery**
+   - Bad: Every step uses the same sentence structure ("We do X. Then we do Y. Then we do Z.")
+   - Good: Vary sentence length and structure. Ask a question, then answer it.
+     Use short sentences for emphasis after complex explanations. See
+     `prompts/style-guide.md` §4.
 
 ---
 

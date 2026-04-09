@@ -43,6 +43,43 @@ encounter each idea.
 
 ---
 
+## Voice & Tone
+
+The tutorial narrator is a **knowledgeable friend** — a senior engineer who
+explains things like they're sketching on a whiteboard at a coffee shop. The
+guiding principle: **风趣幽默 (witty), 通俗易懂 (accessible), 概念表述专业
+(professionally precise on concepts).** Humor lives in the delivery, never in
+imprecision.
+
+### Formality Spectrum
+
+Each notebook section targets a specific register on a 1-5 formality scale:
+
+| Section              | Register | Energy                                      |
+|----------------------|----------|---------------------------------------------|
+| Chapter Intro        | 2        | Hook the reader, build anticipation          |
+| Problem Demo         | 1-2      | Most casual — dramatic, empathetic           |
+| Theory / Derivation  | 3-4      | Precise but warm — no slang in math          |
+| Code Walkthrough     | 2-3      | Conversational, encouraging                  |
+| Implementation       | 3-4      | Professional, personality in comments        |
+| Summary              | 2-3      | Celebratory, forward-looking                 |
+
+### Key Rules
+
+- **Concept precision is non-negotiable.** Technical terms must be correctly
+  named. First occurrence: full name + brief definition. Humor is in the
+  surrounding explanation, not in renaming or dumbing down concepts.
+- **1-2 moments of levity per section.** Never in consecutive paragraphs.
+- **Chinese: use 大白话 (colloquial register).** Avoid academic Chinese.
+  "说白了就是..." not "综上所述...".
+- **English: contractions OK, active voice mandatory, short paragraphs.**
+
+For full guidance — narrator persona, humor patterns, anti-patterns,
+sentence guidelines, and per-section tone examples — see
+`prompts/style-guide.md`.
+
+---
+
 ## Notebook Creation Method — CRITICAL
 
 ### Use Node.js Builder Scripts (Not Direct Write)
@@ -618,6 +655,14 @@ Before declaring the tutorial complete, verify:
 - [ ] Each notebook has a **source mapping table** (Our Implementation vs. Original)
 - [ ] The running example appears in every notebook and grows progressively
 - [ ] A reader with zero prior knowledge of the project can follow the narrative
+- [ ] Each notebook has a consistent narrator voice (knowledgeable friend, not textbook)
+- [ ] Problem Demo cells use casual register with empathetic tone
+- [ ] Theory cells use precise language; all technical terms correctly named
+- [ ] Every technical term has a first-occurrence definition (full name + brief explanation)
+- [ ] Humor is present but never in consecutive paragraphs
+- [ ] No internet memes, forced puns, or sarcasm
+- [ ] Foundation/config notebooks acknowledge tedium and lead with payoff
+- [ ] Average sentence length ≤ 25 Chinese characters / ≤ 20 English words
 - [ ] The final integration notebook runs the complete test suite green
 - [ ] All `_build_nb*.js` builder scripts are moved to `scripts/` after building
 - [ ] Diagrams render correctly in the chosen mode (SVG renders in notebooks, mermaid renders in JupyterLab/GitHub)
@@ -641,6 +686,9 @@ Before declaring the tutorial complete, verify:
   with full derivations.
 - **`prompts/walkthrough-prompt.md`** — How to write plain-language code
   walkthroughs that bridge problem/theory to implementation.
+- **`prompts/style-guide.md`** — Language style guide defining narrator voice,
+  humor patterns, formality spectrum, and concept precision rules. Consult
+  before writing any notebook content.
 - **`scripts/extract-tests.py`** — Copies the original project's tests into
   `original-tests/` with correct import paths.
 - **`scripts/run-tests.py`** — Runs the test suite against `our-implementation/`

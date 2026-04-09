@@ -38,6 +38,10 @@ cognitive_order:
       basic utilities. Keep this level short; readers are eager to get to the
       real thing.
     running_example_role: ""  # e.g., "Introduce the sorting problem and bubble sort"
+    tone_note: >
+      Acknowledge the boring-but-necessary nature up front. Lead with the
+      payoff ("搞定这个，后面就顺了"). Keep notebooks short. Promise fun
+      is coming. See prompts/style-guide.md §8.
     notebooks:
       - id: "00-why-this-project"
         title: "Why This Project Exists"
@@ -55,6 +59,10 @@ cognitive_order:
       primary algorithm. This is what makes the project interesting. Take your
       time here; explain every decision.
     running_example_role: ""  # e.g., "Evolve sorting with the core loop"
+    tone_note: >
+      Enthusiasm should peak here — the reader finally gets to the interesting
+      part. Be excited with them. Humor flows naturally from the satisfaction
+      of seeing things work. "搞定！看到没，绿了！"
     notebooks:
       - id: "02-minimal-viable"
         title: "Minimal Viable Version"
@@ -74,6 +82,10 @@ cognitive_order:
       error handling, performance, edge cases. Each notebook should start by
       showing what breaks without the feature (pain-point driven teaching).
     running_example_role: ""  # e.g., "Same sort example, now with diversity and evaluation"
+    tone_note: >
+      Pain-before-solution is inherently dramatic — lean into it. Problem Demo
+      cells can be the funniest in the whole tutorial ("看吧，又崩了"). The
+      fix then feels earned and satisfying.
     notebooks:
       - id: "XX-error-handling"
         title: "Error Handling & Resilience"
@@ -91,6 +103,10 @@ cognitive_order:
       level already understand the system well — you can be more terse and
       reference earlier notebooks freely.
     running_example_role: ""  # e.g., "Full pipeline evolves optimal sort with parallelism"
+    tone_note: >
+      Readers are invested by now. Be more concise, reference earlier chapters
+      freely, trust the reader more. Humor can be subtler — callbacks to
+      earlier analogies and failures work well here.
     notebooks:
       - id: "XX-extensions"
         title: "Extension Points"

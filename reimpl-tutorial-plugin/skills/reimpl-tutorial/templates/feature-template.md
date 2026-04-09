@@ -32,6 +32,10 @@ from our_implementation import ...
 
 ### Cell 2 — What This Notebook Covers (Markdown)
 
+> **Tone:** Register 2 (casual). Hook the reader. Acknowledge the pain from
+> the previous chapter. Build anticipation for what's coming. See
+> `prompts/style-guide.md` §2.
+
 ```markdown
 ## [Feature Name]
 
@@ -49,6 +53,10 @@ By the end, you'll be able to [concrete capability], and these tests will pass:
 
 ### Cell 3 — The Problem (Markdown + Code)
 
+> **Tone:** Register 1-2 (most casual). Be dramatic about the failure.
+> Empathize with the reader. "看到没？崩了吧。" is the right energy. See
+> `prompts/style-guide.md` §2.
+
 Show concretely what breaks *without* this feature. A short failing example
 is worth a thousand words of explanation.
 
@@ -60,6 +68,10 @@ is worth a thousand words of explanation.
 ---
 
 ### Cell 4 — Theory / Derivation (Markdown) [OPTIONAL]
+
+> **Tone:** Register 3-4 (precise but warm). Technical terms must be exact.
+> Humor via simplifying asides ("说白了就是..."), not in the math itself.
+> See `prompts/style-guide.md` §2 and §7.
 
 Only include this if the feature has non-obvious math or algorithm theory.
 
@@ -113,6 +125,10 @@ readers rely on these to build intuition.
 ---
 
 ### Cell 5 — Code Walkthrough (Markdown) [QUASI-MANDATORY]
+
+> **Tone:** Register 2-3 (conversational, encouraging). "别急，我们一步步来."
+> This is where the "knowledgeable friend" voice shines most. Use rhetorical
+> questions and colloquial transitions freely. See `prompts/style-guide.md` §2.
 
 Walk through the implementation logic in plain language **before** showing
 real code. This cell bridges problem/theory → implementation, helping the
@@ -188,6 +204,10 @@ See `prompts/walkthrough-prompt.md` for full guidance.
 ---
 
 ### Cell 6 — Implementation (Code)
+
+> **Tone:** Register 3-4 (professional with personality in comments). Code
+> itself is clean and standard. Comments can have personality: "# 这里有个坑"
+> is fine; jokes in variable names are not. See `prompts/style-guide.md` §2.
 
 ```python
 # FEATURE: [Feature Name]
@@ -277,6 +297,10 @@ print("\n✓ All tests for this feature pass!")
 
 ### Cell 11 — What We Built (Markdown)
 
+> **Tone:** Register 2-3 (celebratory, forward-looking). Acknowledge the
+> accomplishment. "搞定！" / "Done!" energy. Tease the next chapter's
+> challenge. See `prompts/style-guide.md` §2.
+
 ```markdown
 ## Summary
 
@@ -306,3 +330,4 @@ we'll tackle [next problem], which becomes necessary once we have [this feature]
 # [ ] Summary cell links to the next notebook
 # [ ] Mermaid diagrams are in markdown cells (never code cells)
 # [ ] .ipynb passes JSON validation (node -e "JSON.parse(...)")
+# [ ] Tone varies appropriately between cells (see prompts/style-guide.md §2)
