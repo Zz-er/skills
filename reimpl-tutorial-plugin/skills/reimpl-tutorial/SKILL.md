@@ -302,6 +302,50 @@ Before writing a single notebook cell, thoroughly understand the project:
 
 See `prompts/analysis-deep.md` for the detailed analysis prompt to follow.
 
+### Phase 1 (Continuation Mode)
+
+When **continuing an existing tutorial** (e.g., adding Notebooks 06-10 to an
+existing 00-05 project), replace the full Phase 1 with this lighter variant:
+
+1. **Read existing project state.** Read `SUMMARY.md`, `README.md`, and skim
+   existing notebooks to understand: naming conventions, diagram mode, notebook
+   mode (self-contained vs incremental), tutorial language, and established
+   running example.
+2. **Identify the new scope.** The user's request defines what new notebooks to
+   add. Analyze only the *new* source files/features — do not re-analyze the
+   entire target project.
+3. **Preserve established patterns.** Use the same diagram mode, builder script
+   style, notebook numbering scheme, and language register as existing
+   notebooks. Do not introduce new conventions unless the user requests it.
+4. **Plan only the new notebooks.** Create a mini cognitive ordering for just
+   the new content. State prerequisites from existing notebooks explicitly
+   (e.g., "Requires Notebook 05").
+5. **Skip Phase 1.5 / 1.6.** Diagram mode and tutorial configuration are
+   inherited from the existing project.
+
+### Phase 1 (Comparative Tutorial Mode)
+
+When the user asks to **compare two or more projects** (e.g., "analyze project
+A's implementation vs project B's approach"), add these steps to Phase 1:
+
+1. **Analyze both projects independently.** Read source files from each project,
+   map their architectures, and identify the equivalent components.
+2. **Create a cross-project mapping table.** For each key concept, show how it
+   appears in each project:
+
+   | Concept           | Project A           | Project B            |
+   |-------------------|---------------------|----------------------|
+   | GEMM core loop    | `fused_moe_kernel`  | `matmul_ultimate`    |
+   | Memory tiling     | indirect via IDs    | `make_block_ptr`     |
+
+3. **Identify the comparison axes.** Common axes: performance, code complexity,
+   flexibility, hardware assumptions, optimization techniques used.
+4. **Structure notebooks around comparison.** Each notebook should explicitly
+   bridge both codebases with side-by-side source mapping tables, not just
+   describe one project and then the other.
+5. **Include a dedicated performance comparison notebook** with benchmark
+   methodology, results, and root-cause analysis of any performance gaps.
+
 ### Phase 1.5 — Diagram Mode Selection
 
 **Ask the user** which diagram approach to use for the tutorial. Present three
