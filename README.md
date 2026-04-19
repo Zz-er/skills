@@ -1,6 +1,6 @@
 # Skills
 
-A Claude Code plugin marketplace containing productivity tools for knowledge management and deep learning.
+A Claude Code plugin marketplace containing productivity tools for knowledge management, deep learning, and project management.
 
 ## Installation
 
@@ -13,6 +13,7 @@ Then install the plugins you need:
 ```bash
 claude plugin install wiki-tools
 claude plugin install reimpl-tutorial
+claude plugin install zentao
 ```
 
 ## Plugins
@@ -62,6 +63,27 @@ Generate "from zero to expert" tutorials by deeply analyzing a project and reimp
 5. Optional wiki knowledge sync (if wiki-tools is installed)
 
 See [reimpl-tutorial-plugin/README.md](reimpl-tutorial-plugin/README.md) for details.
+
+### zentao
+
+Wraps 禅道 (ZenTao) open-source PMS via its REST v1 API so AI teams can manage products, projects, executions, stories, tasks, bugs, and todos directly from Claude Code.
+
+**Skills:**
+
+| Skill | Description |
+|-------|-------------|
+| `/zentao` | Full read/write CLI: discovery, create, transition, update, delete across all core ZenTao resources |
+
+**Quick start:**
+
+```
+# one-time config
+mkdir -p ~/.claude/zentao
+cp zentao-plugin/skills/zentao/config.example.yaml ~/.claude/zentao/config.yaml
+# then just talk to Claude: "帮我在禅道提个bug" / "查一下我的待办"
+```
+
+See [zentao-plugin/README.md](zentao-plugin/README.md) for details.
 
 ## Plugin Integration
 

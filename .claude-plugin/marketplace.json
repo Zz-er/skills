@@ -17,6 +17,12 @@
       "description": "Generate 'from zero to expert' tutorials by reimplementing projects in Jupyter notebooks. Includes excalidraw-diagram skill for SVG diagram generation.",
       "source": "./reimpl-tutorial-plugin",
       "category": "productivity"
+    },
+    {
+      "name": "zentao",
+      "description": "Manage 禅道 (ZenTao) open-source PMS via its REST v1 API. Full read/write across products, projects, executions, stories, tasks, bugs, todos, users.",
+      "source": "./zentao-plugin",
+      "category": "productivity"
     }
   ]
 }
