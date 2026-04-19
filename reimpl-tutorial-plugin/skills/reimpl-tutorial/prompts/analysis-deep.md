@@ -12,15 +12,30 @@ by passing the original tests.
 
 ## Step 1: Entry Points
 
-Find and read every entry point:
-- CLI scripts (main.py, run.py, __main__.py, setup.cfg entry_points)
-- Public API files (api.py, __init__.py exports)
-- Configuration loading (config.py, *.yaml files)
+Find and read every entry point. Common patterns by language:
+
+| Language | Entry points |
+|----------|-------------|
+| Python | `main.py`, `run.py`, `__main__.py`, `setup.cfg` / `pyproject.toml` entry_points, `api.py`, `__init__.py` exports |
+| Go | `main.go`, `cmd/*/main.go` |
+| Rust | `main.rs`, `lib.rs`, `bin/*.rs` |
+| JavaScript / TypeScript | `index.js/ts`, `src/index.*`, `package.json` main/bin fields |
+| Java / Kotlin | `*Application.java`, `public static void main`, `pom.xml` / `build.gradle` |
 
 For each entry point, trace what happens when it's called:
 - What arguments does it accept?
 - What does it set up?
 - What is the main loop / primary call chain?
+
+## Step 1b: Language & Toolchain Detection
+
+Identify and record:
+- **Primary language** (by file count and lines of code)
+- **Package manager / build system** (pip/poetry, cargo, go mod, npm/yarn, maven/gradle, etc.)
+- **Test framework** and test file naming convention (pytest `test_*.py`, Go `*_test.go`, Rust `#[test]`, Jest `*.test.js`, JUnit `*Test.java`, etc.)
+- **Whether a Jupyter kernel exists** for this language (Python: always; R: IRkernel; Julia: IJulia; Go/Rust/JS: community kernels exist but may not be installed)
+
+Store this information — it feeds into Phase 1.6 Tutorial Configuration.
 
 ## Step 2: Core Data Structures
 

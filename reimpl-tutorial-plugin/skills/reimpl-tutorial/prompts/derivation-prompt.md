@@ -28,6 +28,13 @@ holds the best solution found so far with a particular combination of properties
 Instead of tracking just the single best solution, we track the best solution
 for each 'niche'."
 
+**Tone note:** The intuition paragraph is Register 3 — warm but precise. Use
+"说白了" / "In plain terms" to bridge from formal to casual. One humorous
+aside is welcome here (e.g., "这个名字听着很唬人，但其实..."). The formal
+derivation that follows is Register 4 — no jokes in the math, but brief
+encouraging asides between steps are fine ("快到了，再坚持一步" / "Almost
+there, one more step"). See `prompts/style-guide.md` §2.
+
 ### 2. Formal Setup
 
 Define all symbols before using them. State what you're trying to compute or
@@ -148,6 +155,10 @@ print("✓ Our derivation matches the original implementation")
   using real values from the running example
 - **Formula without life analogy** — ALWAYS add a one-sentence real-world analogy
 - **Abstract examples** — Use specific numbers (0.9, 0.7, 0.8), not variables (a, b, c)
+- **Dry delivery throughout** — The theory section is precise, but it should
+  not read like a textbook. Add brief human touches between derivation steps:
+  "这一步有点绕，但核心就是把X换成Y" / "This step is a bit involved, but
+  the core move is substituting X for Y." See `prompts/style-guide.md` §3.
 
 ## LaTeX in Jupyter Notebooks
 
