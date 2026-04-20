@@ -315,15 +315,18 @@ class Client:
             },
             method='POST',
         )
-        ctx = None if self.verify_ssl else ssl._create_unverified_context()
         try:
             # ZenTao redirects to a locate URL on success; don't follow it so
             # we can parse the JSON envelope it returns.
             class NoRedirect(urllib.request.HTTPRedirectHandler):
                 def redirect_request(self, *args, **kwargs):
                     return None
-            opener = urllib.request.build_opener(NoRedirect())
-            with opener.open(req, timeout=self.timeout, context=ctx) as resp:
+            handlers = [NoRedirect()]
+            if not self.verify_ssl:
+                handlers.append(urllib.request.HTTPSHandler(
+                    context=ssl._create_unverified_context()))
+            opener = urllib.request.build_opener(*handlers)
+            with opener.open(req, timeout=self.timeout) as resp:
                 raw = resp.read().decode('utf-8', errors='replace')
         except urllib.error.HTTPError as e:
             raw = (e.read() or b'').decode('utf-8', errors='replace')
