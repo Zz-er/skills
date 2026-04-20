@@ -292,6 +292,55 @@ class Client:
             raise ZentaoError(0, f'Non-JSON response on {path}: {raw[:200]}')
         return outer
 
+    def _raw_post_form(self, entry: str, params: list[tuple[str, str]]) -> dict:
+        """POST /<entry>.json with application/x-www-form-urlencoded body.
+
+        Uses a list of (k, v) tuples rather than a dict so that repeat keys
+        (e.g. ZenTao's `openedBuild[]` array field) can be expressed.
+        Returns the outer response dict.
+        """
+        path = entry if entry.endswith('.json') else f'{entry}.json'
+        if not path.startswith('/'):
+            path = '/' + path
+        url = f'{self.url}{path}'
+        body = urllib.parse.urlencode(params).encode('utf-8')
+        req = urllib.request.Request(
+            url,
+            data=body,
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'User-Agent': 'claude-zentao-skill/2.0',
+                'Cookie': f'zentaosid={self.token()}',
+            },
+            method='POST',
+        )
+        ctx = None if self.verify_ssl else ssl._create_unverified_context()
+        try:
+            # ZenTao redirects to a locate URL on success; don't follow it so
+            # we can parse the JSON envelope it returns.
+            class NoRedirect(urllib.request.HTTPRedirectHandler):
+                def redirect_request(self, *args, **kwargs):
+                    return None
+            opener = urllib.request.build_opener(NoRedirect())
+            with opener.open(req, timeout=self.timeout, context=ctx) as resp:
+                raw = resp.read().decode('utf-8', errors='replace')
+        except urllib.error.HTTPError as e:
+            raw = (e.read() or b'').decode('utf-8', errors='replace')
+            if e.code == 302:
+                # ZenTao's success path — body is usually the JSON envelope.
+                raw = raw
+            else:
+                raise ZentaoError(e.code, f'HTTP {e.code} on {path}: {raw[:200]}')
+        except urllib.error.URLError as e:
+            raise ZentaoError(0, f'Network error: {e.reason}')
+        if not raw:
+            return {}
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            raise ZentaoError(0, f'Non-JSON response on {path}: {raw[:200]}')
+
     def get_json(self, entry: str, cookies: dict | None = None) -> dict:
         """Fetch an entry and return the unwrapped inner dict.
 
@@ -354,6 +403,70 @@ class Client:
         bugs = as_list(inner.get('bugs'))
         users = inner.get('users') or {}
         return bugs, users
+
+    def get_bug_detail(self, bug_id: int | str) -> dict:
+        """Full bug record via /bug-view-{id}.json.
+
+        Returns the `bug` object (with product/project/module/branch/openedBuild/
+        steps/etc. fields). Needed before calling add_bug_comment — every
+        edit/comment has to round-trip the full field set.
+        """
+        inner = self.get_json(f'bug-view-{bug_id}')
+        bug = inner.get('bug') if isinstance(inner, dict) else None
+        if not bug:
+            raise ZentaoError(404, f'bug-view-{bug_id}.json returned no bug payload: {inner}')
+        return bug
+
+    def add_bug_comment(self, bug_id: int | str, comment: str) -> dict:
+        """Attach a comment to a bug via /bug-edit-{id}.json.
+
+        ZenTao has no independent comment endpoint that works on restricted
+        accounts — `action-comment` returns `user-deny`. Instead, the edit
+        endpoint accepts a `comment` field, but it rewrites the entire
+        record: **every field omitted from the POST gets cleared**. The most
+        dangerous of these is `product` — dropping it permanently severs the
+        bug from its product so nobody can reach it anymore.
+
+        We handle that by first fetching the bug's current values and
+        re-submitting them verbatim alongside the new comment.
+        """
+        bug = self.get_bug_detail(bug_id)
+
+        # openedBuild may arrive as list / CSV string / single token; normalize
+        # to a list so each value becomes one `openedBuild[]` param.
+        raw_build = bug.get('openedBuild')
+        if isinstance(raw_build, list):
+            builds = [str(b) for b in raw_build if b]
+        elif isinstance(raw_build, str) and raw_build:
+            builds = [b for b in raw_build.split(',') if b]
+        else:
+            builds = ['trunk']
+
+        params: list[tuple[str, str]] = [
+            ('product', str(bug.get('product') or '')),
+            ('project', str(bug.get('project') or '')),
+            ('module', str(bug.get('module') or '0')),
+            ('branch', str(bug.get('branch') or '0')),
+            ('title', str(bug.get('title') or '')),
+            ('severity', str(bug.get('severity') or '3')),
+            ('type', str(bug.get('type') or 'codeerror')),
+            ('assignedTo', str(bug.get('assignedTo') or '')),
+            ('steps', str(bug.get('steps') or '')),
+            ('comment', comment),
+        ]
+        for b in builds:
+            params.append(('openedBuild[]', b))
+
+        outer = self._raw_post_form(f'bug-edit-{bug_id}', params)
+        inner = self._unwrap(outer) if isinstance(outer, dict) else {}
+        # Success redirects to `locate` (usually the bug-view page).
+        if isinstance(inner, dict) and inner.get('locate'):
+            return {'ok': True, 'locate': inner.get('locate')}
+        # Otherwise surface whatever the server said.
+        msg = None
+        if isinstance(outer, dict):
+            msg = outer.get('message') or outer.get('reason')
+        return {'ok': False, 'error': msg or inner or outer}
 
 
 if __name__ == '__main__':

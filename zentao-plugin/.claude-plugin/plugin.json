@@ -1,7 +1,7 @@
 {
   "name": "zentao",
-  "version": "2.1.0",
-  "description": "Query 禅道 (ZenTao) open-source PMS via its legacy session-cookie .json API. Read-oriented: projects, bugs, bug-reports by assignee, bug-change polling, user mapping.",
+  "version": "2.2.0",
+  "description": "Query 禅道 (ZenTao) open-source PMS via its legacy session-cookie .json API. Projects, bugs, bug-reports by assignee, bug-change polling, user mapping, and comment-on-bug (via safe bug-edit round-trip).",
   "author": {
     "name": "local"
   }

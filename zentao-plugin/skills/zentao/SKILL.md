@@ -65,6 +65,10 @@ python "${CLAUDE_PLUGIN_ROOT}/skills/zentao/scripts/cli.py" <command> [args...] 
   NDJSON events for `new` / `resolved_or_closed` / `reassigned` bugs
 - `users [--project ID]` — dump the `account → realname` map (borrowed from
   a project's bug payload)
+- `comment-bug ID --body TEXT --yes` (or `--file F`, or pipe via stdin) —
+  append a comment to a bug. Re-submits the full bug record with
+  `comment` appended; requires `--yes` as a guardrail because it hits
+  `/bug-edit-{id}.json` (see gotcha below)
 
 ### Output
 
@@ -84,6 +88,24 @@ inner payload including pager, teamMembers, etc.
    with `[图片]`). Good for summarizing reproduction steps.
 4. **Live monitoring** — `poll-bugs --project X --interval 60` prints an
    NDJSON event stream of bug changes. Feed into whatever notifier.
+
+## Bug comments — the dangerous path
+
+ZenTao has no stand-alone comment API on community-edition accounts
+(`action-comment-bug-*` returns `user-deny` for most roles). The only way
+to attach a comment is through `POST /bug-edit-{id}.json`, which **rewrites
+the entire bug record**. Any required field you omit gets silently cleared.
+
+The two fatal ones:
+
+- **`product`** — drop it and the bug is permanently severed from its
+  product; nobody can reach it from the UI anymore.
+- **`openedBuild[]`** (note the `[]`) — a multi-value field; omitting it
+  clears the "opened build" column.
+
+The CLI's `comment-bug` wraps this correctly: it GETs `/bug-view-{id}.json`
+first, then re-submits every field verbatim with `comment` appended.
+Don't hand-roll your own POST to `bug-edit` without doing the same.
 
 ## API gotchas (important for any custom calls)
 

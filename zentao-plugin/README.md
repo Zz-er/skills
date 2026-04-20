@@ -79,6 +79,8 @@ python "${CLAUDE_PLUGIN_ROOT}/skills/zentao/scripts/cli.py" <command> [args] [--
 - `bug-report --project ID` — markdown stats by assignee × severity
 - `poll-bugs --project ID [--interval 60]` — NDJSON event stream
 - `users [--project ID]` — account → realname map
+- `comment-bug ID --body TEXT --yes` — append a comment to a bug (wraps the
+  dangerous `bug-edit` round-trip so required fields like `product` survive)
 
 See `skills/zentao/references/` for URL table, field types, and enum labels.
 

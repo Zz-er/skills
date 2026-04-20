@@ -47,11 +47,42 @@ All `.json` endpoints return:
 | Project stories | `/project-story-{projectId}.json` | `pagerProjectStory=<N>` | `stories`, `users`, … |
 | Project tasks | `/project-task-{projectId}.json` | `pagerProjectTask=<N>` | `tasks`, `users`, … |
 | My bugs | `/my-bug.json` | `pagerMyBug=<N>` | `bugs` (pre-filtered to current user), `users`, … |
+| Bug detail | `/bug-view-{bugId}.json` | — | `bug` (full record: product, project, module, branch, openedBuild, steps, severity, type, assignedTo, status, …) |
 | My tasks | `/my-task.json` | — | `tasks`, `users`, … |
 | My todos | `/my-todo.json` | — | `todos`, … |
 
 Only the first two are wrapped by the CLI; the rest follow the same
 pattern and can be fetched via `Client.get_json(entry)`.
+
+## Write endpoints
+
+### Comment on a bug (via edit round-trip)
+
+`POST /bug-edit-{bugId}.json` with `Content-Type: application/x-www-form-urlencoded`.
+
+No stand-alone comment API exists on community-edition instances
+(`action-comment-*` returns `user-deny` for non-admin roles). Instead,
+`bug-edit` accepts a `comment` field — but it rewrites the full bug
+record, so every required field must be re-submitted verbatim.
+
+**Required fields (omitting any of these corrupts the bug):**
+
+| Field | Notes |
+|---|---|
+| `product` | **Dropping this severs the bug from its product permanently.** Always copy from `bug-view`. |
+| `project` | Copy verbatim |
+| `module` | Default `"0"` if empty |
+| `branch` | Default `"0"` if empty |
+| `title` | |
+| `severity` | `"1"`–`"4"` |
+| `type` | `codeerror` / `config` / … |
+| `assignedTo` | Current assignee account |
+| `steps` | HTML string — copy verbatim |
+| `openedBuild[]` | **Array field — the `[]` in the name is required.** If multiple builds, emit multiple `openedBuild[]=X` pairs. Default `"trunk"`. |
+| `comment` | The new comment body |
+
+Success: server returns (inside `data`) `{locate: "<bug-view-url>"}`.
+The `Client.add_bug_comment()` helper handles the full round-trip.
 
 ## Browser links (for surfacing in reports)
 

@@ -310,6 +310,28 @@ def cmd_poll_bugs(c: Client, args) -> Any:
         return None
 
 
+def cmd_comment_bug(c: Client, args) -> Any:
+    # Body from flag or stdin. Stdin is preferred for multi-line comments
+    # — argparse shells can't pass newlines cleanly.
+    if args.body is not None:
+        body = args.body
+    elif args.file:
+        body = Path(args.file).read_text(encoding='utf-8')
+    else:
+        body = sys.stdin.read()
+    body = body.strip()
+    if not body:
+        raise SystemExit('empty comment body; pass --body, --file or pipe via stdin')
+    if not args.yes:
+        raise SystemExit('Comments edit the bug record. Re-run with --yes to confirm.')
+    result = c.add_bug_comment(args.id, body)
+    if args.json or args.raw:
+        return result
+    if result.get('ok'):
+        return f"commented on bug {args.id} (locate={result.get('locate')})"
+    return f"FAILED: {result.get('error')}"
+
+
 def cmd_users(c: Client, args) -> Any:
     # Users map is embedded in any project-bug response; reuse that.
     pid = args.project or c.defaults.get('default_project')
@@ -384,6 +406,15 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument('--project', type=int, help='any project id; used to extract map')
     _add_common(sp)
 
+    sp = sub.add_parser('comment-bug',
+                        help='add a comment to a bug (rewrites record via bug-edit; requires --yes)')
+    sp.add_argument('id', type=int, help='bug id')
+    sp.add_argument('--body', help='comment body (inline). For multi-line, use --file or stdin')
+    sp.add_argument('--file', type=Path, help='read body from file (UTF-8)')
+    sp.add_argument('--yes', action='store_true',
+                    help='confirm: this POSTs a full bug-edit; safety guardrail')
+    _add_common(sp)
+
     return p
 
 
@@ -396,6 +427,7 @@ HANDLERS = {
     'bug-report': cmd_bug_report,
     'poll-bugs': cmd_poll_bugs,
     'users': cmd_users,
+    'comment-bug': cmd_comment_bug,
 }
 
 
