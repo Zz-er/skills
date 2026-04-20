@@ -1,23 +1,26 @@
 # zentao-plugin
 
-A Claude Code plugin that wraps 禅道 (ZenTao) open-source PMS via its REST v1 API. One skill (`zentao`) gives Claude full read/write across products, projects, executions, stories, tasks, bugs, todos, and users — ideal for AI teams doing project management.
+A Claude Code plugin for 禅道 (ZenTao) open-source PMS. Uses the legacy
+session-cookie `.json` URL API (works on community editions without needing
+REST v1 enabled). Read-oriented: list projects, list/filter bugs, generate
+bug stats reports by assignee, and poll for bug changes.
 
-## Skills Included
+## Skills included
 
 | Skill | Description |
 |-------|-------------|
-| **zentao** | Create/read/update/transition ZenTao resources through a bundled Python CLI. Uses the `/api.php/v1/` REST endpoint with token auth. |
+| **zentao** | Query ZenTao via `/user-login.json` + `/<entry>.json` with `Cookie: zentaosid=<token>`. Bundled Python CLI covers projects, bugs, bug-reports, bug-polling, and user mapping. |
 
 ## Installation
 
-### Via Claude Code Plugin Marketplace (recommended)
+### Via Claude Code plugin marketplace
 
 ```bash
 claude plugin marketplace add https://github.com/Zz-er/skills
 claude plugin install zentao
 ```
 
-### Manual Installation
+### Manual installation
 
 ```bash
 git clone https://github.com/Zz-er/skills.git ~/.claude/local-plugins/_skills_repo
@@ -27,56 +30,58 @@ ln -s ~/.claude/local-plugins/_skills_repo/zentao-plugin \
 
 ## Configuration
 
-Copy the example config and fill in your ZenTao credentials:
-
 ```bash
 mkdir -p ~/.claude/zentao
 cp <plugin-dir>/skills/zentao/config.example.yaml ~/.claude/zentao/config.yaml
 $EDITOR ~/.claude/zentao/config.yaml
 ```
 
-Minimum config:
+Minimum:
 
 ```yaml
-url: https://zentao.example.com
+url: http://zentao.example.com      # base URL, no trailing slash
 account: your_account
 password: your_password
-# Optional defaults so commands don't need ids each time:
-# default_product: 1
-# default_execution: 1
+# Optional:
+# default_project: 790
+# verify_ssl: false    # for self-signed / plain HTTP internal hosts
+# timeout: 15
 ```
 
 Config lookup order: `--config` flag → `$ZENTAO_CONFIG` → `~/.claude/zentao/config.yaml` → in-tree `skills/zentao/config.yaml`.
 
-Token is cached at `~/.claude/.cache/zentao_token.json` (2h TTL, auto-refreshed on 401).
+Session token is cached at `~/.claude/.cache/zentao_token.json` (2h TTL, auto-refreshed on login-redirect).
 
 ## Usage
 
-The skill triggers automatically on phrases like:
+The skill triggers on phrases like:
 
-- "帮我在禅道提个bug"
-- "查一下我在禅道的待办"
-- "给 X 指派这个任务"
-- "批量创建这个迭代的任务"
+- "查一下 Sprint9 的 bug 情况"
+- "给我出一份 bug 统计"
+- "监控项目 790 的 bug 变更"
+- "禅道里我负责的项目有哪些"
 
-Or invoke directly: `/zentao`
+Or invoke directly via `/zentao`.
 
-Underneath, Claude calls:
+Under the hood Claude runs:
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/skills/zentao/scripts/cli.py" <command> [args...] [--json]
+python "${CLAUDE_PLUGIN_ROOT}/skills/zentao/scripts/cli.py" <command> [args] [--json|--raw]
 ```
 
 ### Command surface
 
-- **Read**: `whoami`, `products`, `projects`, `executions`, `stories`, `bugs`, `tasks`, `todos`, `users`, `get <kind> <id>`
-- **Create**: `create-bug`, `create-task`, `create-story`, `create-todo`, `create-execution`, `create-project`, `batch-create-tasks`
-- **Transitions**: `assign-bug`, `resolve-bug`, `close-bug`, `activate-bug`, `confirm-bug`, `assign-task`, `start-task`, `finish-task`, `close-task`, `activate-task`, `assign-story`, `close-story`, `review-story`, `finish-todo`, `activate-todo`
-- **Mutate**: `update <kind> <id> --field k=v`, `delete <kind> <id> --yes`
+- `whoami` — verify auth
+- `projects [--all]` — projects I'm a member of
+- `bugs --project ID [--status active|resolved|closed|all] [--assigned-to ACC]`
+- `bug ID --project PID` — single bug with cleaned HTML steps
+- `bug-report --project ID` — markdown stats by assignee × severity
+- `poll-bugs --project ID [--interval 60]` — NDJSON event stream
+- `users [--project ID]` — account → realname map
 
-Full field tables and endpoint reference live in `skills/zentao/references/`.
+See `skills/zentao/references/` for URL table, field types, and enum labels.
 
-## Plugin Structure
+## Plugin structure
 
 ```
 zentao-plugin/
@@ -96,8 +101,16 @@ zentao-plugin/
 
 ## Requirements
 
-- Python 3.8+ (uses only stdlib `urllib`; PyYAML optional for richer config parsing)
-- A reachable ZenTao open-source instance with REST v1 enabled
+- Python 3.8+ (stdlib only; PyYAML optional)
+- A reachable ZenTao open-source instance reachable at `<url>/user-login.json`
+
+## Scope
+
+This plugin is **read-only**. Creating, resolving, or transitioning
+bugs/tasks via the legacy `.json` API relies on per-version form POSTs that
+are brittle to wrap. If the target instance exposes REST v1
+(`/api.php/v1/tokens`), a separate v1-based client is the right tool for
+writes.
 
 ## License
 

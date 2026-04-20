@@ -1,7 +1,7 @@
 {
   "name": "zentao",
-  "version": "1.0.0",
-  "description": "Manage 禅道 (ZenTao) open-source PMS via its REST v1 API. Full read/write across products, projects, executions, stories, tasks, bugs, todos, users.",
+  "version": "2.0.0",
+  "description": "Query 禅道 (ZenTao) open-source PMS via its legacy session-cookie .json API. Read-oriented: projects, bugs, bug-reports by assignee, bug-change polling, user mapping.",
   "author": {
     "name": "local"
   }

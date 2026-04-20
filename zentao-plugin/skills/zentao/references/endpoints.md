@@ -1,146 +1,87 @@
-# ZenTao REST v1 endpoint reference
+# ZenTao legacy `.json` endpoint reference
 
-Source: `easysoft/zentaopms` `api/v1/entries/*.php` (community edition).
+ZenTao's web UI exposes every page's data as JSON when the URL ends in
+`.json`. No REST v1 / API tokens required — auth is a session cookie.
 
-Base URL: `{host}/api.php/v1/`. Auth header: `Token: <session_id>` returned by `POST /tokens`.
-
-## Conventions
-
-- **Plural** path = collection (`/bugs`, `/tasks`); GET = list, POST = create.
-- **Singular** path = item (`/bug/123`, `/task/456`); GET = view, PUT = update, DELETE = remove.
-- **Singular + verb** = state transition (`/bugresolve/123`, `/taskfinish/456`); always POST.
-- Pagination: `?page=1&limit=20`. Sorting: `?order=id_desc`. Filter: depends on endpoint.
+Base URL: `{host}` (e.g. `http://10.111.161.190:80`). All requests send
+`Cookie: zentaosid=<token>` where `<token>` is the value returned in the
+login response body (`res.user.token`). **Don't use the `zentaosid` value
+from the server's `Set-Cookie` header — that's the un-authenticated
+session id and will redirect back to login.**
 
 ## Auth
 
-| Method | Path | Body | Returns |
+| Method | URL | Body | Returns |
 |---|---|---|---|
-| POST | `/tokens` | `{account, password}` | `{token}` |
+| POST | `/user-login.json` | `account=X&password=Y` (`application/x-www-form-urlencoded`) | `{status, user: {id, account, realname, role, token, ...}}` |
 
-## Products
+On success, save `user.token` and use it as the `zentaosid` cookie value.
+Session lasts ~2h idle. On expiry, any subsequent call's response has
+`data.locate` pointing back at login; re-login and retry.
 
-| Method | Path | Notes |
-|---|---|---|
-| GET | `/products` | `?status=&program=&project=&mergeChildren=&withUser=` |
-| POST | `/products` | required: `name` (and `code` if site uses codes) |
-| GET | `/product/{id}` | `?fields=modules,execution,bugStatistic,builds,actions,lastexecution` |
-| PUT | `/product/{id}` | fields: program,line,name,PO,QD,RD,type,desc,whitelist,status,acl |
-| DELETE | `/product/{id}` |  |
+## Response envelope
 
-## Projects
+All `.json` endpoints return:
 
-| Method | Path | Notes |
-|---|---|---|
-| GET | `/projects` | `?status=&program=&involved=&order=order_asc` |
-| POST | `/projects` | required: `name,begin,end,products` (+`code`); `model=scrum` default |
-| GET | `/project/{id}` | `?fields=team,products,stat,workhour,actions,dynamics` |
-| PUT | `/project/{id}` |  |
-| DELETE | `/project/{id}` |  |
-| GET | `/projectbugs/{projectID}` |  |
-| GET | `/projectstories/{projectID}` |  |
-| GET | `/projectcases/{projectID}` |  |
-| GET | `/projectreleases/{projectID}` |  |
+```json
+{
+  "status": "success",
+  "data": "<JSON string OR object>",
+  "md5": "..."
+}
+```
 
-## Executions (sprints/stages)
+- `data` is **often a JSON-encoded string** that needs a second
+  `json.loads` — always handle both shapes.
+- The unwrapped inner dict has entry-specific keys (`projects`, `bugs`,
+  `users`, `pager`, `title`, …).
+- Collections (`projects`, `bugs`, `users`) may be returned as a **list**
+  or as an **object keyed by id**. Normalize before iterating.
 
-| Method | Path | Notes |
-|---|---|---|
-| GET | `/executions[/{projectID}]` | `?status=&order=&product=&mergeChildren=&withProject=` |
-| POST | `/executions` | required: `name,begin,end`; pass `project` |
-| GET | `/execution/{id}` | `?fields=modules,builds,members,stories,actions,dynamics,chartdata` |
-| PUT | `/execution/{id}` |  |
-| DELETE | `/execution/{id}` |  |
-| GET | `/executionbugs/{executionID}` |  |
-| GET | `/executionstories/{executionID}` |  |
-| GET | `/executioncases/{executionID}` |  |
-| GET | `/executionbuilds/{executionID}` |  |
+## Read endpoints (verified)
 
-## Stories (requirements)
+| Purpose | URL | Notable cookies | Inner keys |
+|---|---|---|---|
+| My projects | `/my-project.json` | — | `projects`, `deptList`, `pager`, `type`, … |
+| Project bugs | `/project-bug-{projectId}.json` | `pagerProjectBug=<N>` sets page size | `bugs`, `users`, `projects`, `products`, `teamMembers`, `pager`, … |
+| Project stories | `/project-story-{projectId}.json` | `pagerProjectStory=<N>` | `stories`, `users`, … |
+| Project tasks | `/project-task-{projectId}.json` | `pagerProjectTask=<N>` | `tasks`, `users`, … |
+| My bugs | `/my-bug.json` | — | `bugs`, `users`, … |
+| My tasks | `/my-task.json` | — | `tasks`, `users`, … |
+| My todos | `/my-todo.json` | — | `todos`, … |
 
-| Method | Path | Notes |
-|---|---|---|
-| GET | `/stories[/{productID}]` | `?branch=&status=unclosed&type=story&order=` |
-| POST | `/stories` | required: `title,spec,pri,category` |
-| GET | `/story/{id}` |  |
-| PUT | `/story/{id}` |  |
-| DELETE | `/story/{id}` |  |
-| POST | `/storyassignto/{id}` | `{assignedTo, comment}` |
-| POST | `/storyclose/{id}` | `{closedReason, duplicateStory?, comment}` |
-| POST | `/storyreview/{id}` | `{result, reviewedDate, closedReason?, comment}` |
-| POST | `/storyactive/{id}` |  |
-| POST | `/storychange/{id}` |  |
-| POST | `/storyrecall/{id}` |  |
-| POST | `/storysubmitreview/{id}` |  |
-| POST | `/storyrecordestimate/{id}` |  |
+Only the first two are wrapped by the CLI; the rest follow the same
+pattern and can be fetched via `Client.get_json(entry)`.
 
-## Tasks
+## Browser links (for surfacing in reports)
 
-| Method | Path | Notes |
-|---|---|---|
-| GET | `/tasks[/{executionID}]` | no id → my tasks; `?type=assignedTo&status=&order=` ; `?search=1` enables advanced filter `pri,assignedTo,status,id,name` |
-| POST | `/tasks/{executionID}` | required: `name,assignedTo,type,estStarted,deadline` |
-| GET | `/task/{id}` |  |
-| PUT | `/task/{id}` |  |
-| DELETE | `/task/{id}` |  |
-| POST | `/taskbatchcreate/{executionID}` | body: `{tasks:[{name,type,...}]}` |
-| POST | `/taskstart/{id}` | `{assignedTo,consumed,left,comment,realStarted}` |
-| POST | `/taskfinish/{id}` | required: `currentConsumed,realStarted,finishedDate` |
-| POST | `/taskpause/{id}` |  |
-| POST | `/taskrestart/{id}` |  |
-| POST | `/taskclose/{id}` | `{comment}` |
-| POST | `/taskactive/{id}` |  |
-| POST | `/taskassignto/{id}` | required: `assignedTo` |
-| POST | `/taskrecordestimate/{id}` |  |
+| Purpose | URL |
+|---|---|
+| Bug detail page | `/bug-view-{bugId}.html` |
+| Project bug list page | `/project-bug-{projectId}.html` |
+| Project overview | `/project-index-{projectId}.html` |
 
-## Bugs
+## Pagination via cookies
 
-| Method | Path | Notes |
-|---|---|---|
-| GET | `/bugs[/{productID}]` | `?branch=all&status=&order=id_desc&limit=20&page=1` |
-| POST | `/bugs/{productID}` | required: `title,pri,severity,type,openedBuild` |
-| GET | `/bug/{id}` |  |
-| PUT | `/bug/{id}` |  |
-| DELETE | `/bug/{id}` |  |
-| POST | `/bugassign/{id}` | `{assignedTo,mailto,comment}` |
-| POST | `/bugresolve/{id}` | `{resolution,resolvedBuild?,resolvedDate?,duplicateBug?,assignedTo?,comment?}` |
-| POST | `/bugclose/{id}` | `{comment}` |
-| POST | `/bugactive/{id}` | `{assignedTo,openedBuild,comment}` |
-| POST | `/bugconfirm/{id}` | `{assignedTo,pri,type,status,deadline,comment}` |
-| POST | `/bugrecordestimate/{id}` |  |
+Some list entries cap rows at 20 by default. Override per-entry with the
+cookie named `pager<Entry>`:
 
-## Todos
+| Entry | Cookie |
+|---|---|
+| project-bug | `pagerProjectBug` |
+| project-story | `pagerProjectStory` |
+| project-task | `pagerProjectTask` |
+| my-bug | `pagerMyBug` |
+| my-task | `pagerMyTask` |
 
-| Method | Path | Notes |
-|---|---|---|
-| GET | `/todos` | `?type=all&status=all&order=date_desc,status,begin` |
-| POST | `/todos` | required: `name`; defaults date=today,type=custom,status=wait,pri=3 |
-| GET | `/todo/{id}` |  |
-| PUT | `/todo/{id}` |  |
-| DELETE | `/todo/{id}` |  |
-| GET | `/todoactivate/{id}` |  |
-| GET | `/todofinish/{id}` |  |
+Value is the page size (e.g. `1000`). The CLI exposes this via `--limit`.
 
-## Users / orgs
+## Error shapes
 
-| Method | Path | Notes |
-|---|---|---|
-| GET | `/users` | `?full=0&type=bydept&browse=inside` |
-| POST | `/users` | required: `account,gender,realname,password` |
-| GET | `/user/{id}` |  |
-| GET | `/departments` / `/department/{id}` |  |
-| GET | `/groups` |  |
-| GET | `/stakeholders` |  |
+- HTTP 200 + `data.locate: http://.../user-login-...json` → session expired
+- HTTP 200 + `data._raw: <html>` (our own wrapper) → server returned HTML
+  (wrong URL, or not logged in and `.json` suffix got stripped)
+- Login 200 + `status: fail` → bad credentials
 
-## Plans / programs
-
-| Method | Path | Notes |
-|---|---|---|
-| GET | `/programs` / `/program/{id}` |  |
-| GET | `/productplans` / `/productplan/{id}` |  |
-| POST | `/productplanlinkstories/{planID}` |  |
-| POST | `/productplanunlinkstories/{planID}` |  |
-| POST | `/productplanlinkbugs/{planID}` |  |
-
-## Other
-
-`/builds`, `/build/{id}`, `/releases`, `/release/{id}`, `/testcases`, `/testcase/{id}`, `/testtasks`, `/testtask/{id}`, `/testresults`, `/testsuites`, `/issues`, `/issue/{id}`, `/risks`, `/risk/{id}`, `/feedbacks`, `/feedback/{id}`, `/docs`, `/doc/{id}`, `/doclibs`, `/files`, `/file/{id}`, `/meetings`, `/repos`, `/jobs`, `/pipelines`, `/mr`, `/options`, `/configs`, `/modules`, `/tabs`, `/views`, `/ping`, `/error`.
+The CLI treats login-redirect as "refresh token and retry once". Anything
+else surfaces as a `ZentaoError`.

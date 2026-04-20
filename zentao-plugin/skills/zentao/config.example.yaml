@@ -1,18 +1,16 @@
-# Copy this file to config.yaml and fill in your values.
-# config.yaml is .gitignored. Never commit credentials.
+# Copy this file to ~/.claude/zentao/config.yaml and fill in your values.
+# Never commit config.yaml — it's .gitignored.
 
-url: https://zentao.example.com   # base URL of the ZenTao web UI (no trailing slash)
+url: http://zentao.example.com   # base URL of the ZenTao web UI (no trailing slash)
 account: your_account
 password: your_password
 
-# Optional defaults so commands don't need to repeat ids:
-# default_product: 1
-# default_project: 1
-# default_execution: 1
+# Optional: default project id so commands don't need --project each time.
+# default_project: 790
 
 # Optional: override token cache path (default ~/.claude/.cache/zentao_token.json)
 # token_cache: ~/.claude/.cache/zentao_token.json
 
-# Optional: extra HTTP options
-# verify_ssl: true
-# timeout: 30
+# Optional HTTP options
+# verify_ssl: false   # set false for self-signed or plain-HTTP internal hosts
+# timeout: 15

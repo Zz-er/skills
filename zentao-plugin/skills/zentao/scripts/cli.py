@@ -1,455 +1,370 @@
-"""CLI for the zentao skill.
+"""CLI for the zentao skill (session-cookie / `.json` URL API).
 
 Usage:
-    python cli.py <command> [args...] [--json]
+    python cli.py <command> [args...] [--json] [--raw]
 
-Run `python cli.py help` for the command list. The CLI is intentionally
-flat — each command maps to one or two REST calls. Invoked by Claude
-based on SKILL.md guidance.
+Run `python cli.py help` for the full list. Each command is a thin wrapper
+around one or two ZenTao `.json` entries and is invoked by Claude based on
+SKILL.md guidance.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import sys
-from datetime import date, datetime
+import time
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from zentao import Client, ZentaoError  # noqa: E402
+# Force UTF-8 on stdout/stderr — Windows consoles default to GBK and mangle
+# ZenTao's Chinese strings. No-op on POSIX or if already UTF-8.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding='utf-8')  # type: ignore[attr-defined]
+    except (AttributeError, ValueError):
+        pass
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from zentao import Client, ZentaoError, as_list, clean_html  # noqa: E402
+
+
+# ---------- constants ----------
+
+SEVERITY_LABEL = {'1': '严重', '2': '主要', '3': '次要', '4': '轻微'}
+STATUS_LABEL = {
+    'active': '激活', 'resolved': '已解决', 'closed': '已关闭',
+    'wait': '未开始', 'doing': '进行中', 'done': '已完成',
+    'suspended': '已挂起', 'cancel': '已取消',
+}
+TYPE_LABEL = {
+    'codeerror': '代码错误', 'config': '配置相关', 'install': '安装部署',
+    'security': '安全相关', 'performance': '性能问题', 'standard': '标准规范',
+    'automation': '测试脚本', 'designdefect': '设计缺陷', 'others': '其他',
+}
+RESOLUTION_LABEL = {
+    'bydesign': '设计如此', 'duplicate': '重复Bug', 'external': '外部原因',
+    'fixed': '已解决', 'notrepro': '无法重现', 'postponed': '延期处理',
+    'willnotfix': '不予解决', 'tostory': '转为需求',
+}
+
+
+# ---------- output ----------
 
 def _emit(data: Any, as_json: bool) -> None:
     if as_json:
         print(json.dumps(data, ensure_ascii=False, indent=2, default=str))
         return
-    if isinstance(data, dict):
+    if isinstance(data, str):
+        print(data)
+    elif isinstance(data, dict) or isinstance(data, list):
         print(json.dumps(data, ensure_ascii=False, indent=2, default=str))
-    elif isinstance(data, list):
-        for item in data:
-            print(json.dumps(item, ensure_ascii=False, default=str))
     else:
         print(data)
 
 
-def _parse_kv_list(items: list[str]) -> dict:
-    out = {}
-    for item in items or []:
-        if '=' not in item:
-            raise SystemExit(f'--field expects key=value, got: {item}')
-        k, _, v = item.partition('=')
-        out[k.strip()] = v
-    return out
-
-
-def _today() -> str:
-    return date.today().isoformat()
-
-
-def _now() -> str:
-    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+def _display_name(users: dict, account: str) -> str:
+    return users.get(account) or account or '未指派'
 
 
 # ---------- command handlers ----------
 
-def cmd_whoami(c: Client, args, raw):
-    c.login(force=True)
-    return {'ok': True, 'account': c.account, 'url': c.url, 'token_prefix': c.token()[:8] + '...'}
+def cmd_whoami(c: Client, args) -> Any:
+    user = c.whoami()
+    if args.json or args.raw:
+        return user
+    return (
+        f"account: {user.get('account')}\n"
+        f"realname: {user.get('realname')}\n"
+        f"role: {user.get('role')}\n"
+        f"dept: {user.get('dept')}\n"
+        f"url: {c.url}"
+    )
 
 
-def cmd_products(c, args, raw):
-    return c.get('/products', status=args.status, limit=args.limit, page=args.page)
+def cmd_projects(c: Client, args) -> Any:
+    projects = c.get_projects(include_closed=args.all)
+    if args.raw:
+        return projects
+    summary = [{
+        'id': int(p.get('id', 0)) or p.get('id'),
+        'name': p.get('name'),
+        'status': p.get('status'),
+        'type': p.get('type'),
+        'begin': p.get('begin'),
+        'end': p.get('end'),
+        'PM': p.get('PM'),
+    } for p in projects]
+    if args.json:
+        return summary
+    lines = [f"{len(summary)} project(s):"]
+    for p in summary:
+        lines.append(f"  [{p['id']:>5}] {p['status']:<10} {p['type']:<10} {p['name']}  (PM={p['PM']})")
+    return '\n'.join(lines)
 
 
-def cmd_projects(c, args, raw):
-    return c.get('/projects', status=args.status, limit=args.limit, page=args.page)
-
-
-def cmd_executions(c, args, raw):
-    path = f'/executions/{args.project}' if args.project else '/executions'
-    return c.get(path, status=args.status, limit=args.limit, page=args.page, withProject=1 if args.with_project else None)
-
-
-def cmd_stories(c, args, raw):
-    pid = args.product or c.defaults.get('default_product')
+def cmd_bugs(c: Client, args) -> Any:
+    pid = args.project or c.defaults.get('default_project')
     if not pid:
-        raise SystemExit('--product required (or set default_product in config)')
-    return c.get(f'/stories/{pid}', status=args.status, limit=args.limit, page=args.page)
+        raise SystemExit('--project ID required (or set default_project in config.yaml)')
+    bugs, users = c.get_bugs(pid, page_size=args.limit)
+    if args.status and args.status != 'all':
+        bugs = [b for b in bugs if b.get('status') == args.status]
+    if args.assigned_to:
+        bugs = [b for b in bugs if b.get('assignedTo') == args.assigned_to]
+    if args.raw:
+        return {'bugs': bugs, 'users': users}
+    rows = []
+    for b in bugs:
+        rows.append({
+            'id': int(b.get('id', 0)) or b.get('id'),
+            'title': b.get('title'),
+            'severity': SEVERITY_LABEL.get(str(b.get('severity')), b.get('severity')),
+            'status': STATUS_LABEL.get(b.get('status'), b.get('status')),
+            'type': TYPE_LABEL.get(b.get('type'), b.get('type')),
+            'assignedTo': _display_name(users, b.get('assignedTo', '')),
+            'openedBy': _display_name(users, b.get('openedBy', '')),
+            'openedDate': b.get('openedDate'),
+            'resolution': RESOLUTION_LABEL.get(b.get('resolution'), b.get('resolution')),
+        })
+    if args.json:
+        return rows
+    lines = [f"{len(rows)} bug(s) in project {pid}:"]
+    for r in rows:
+        lines.append(
+            f"  [{r['id']:>6}] {r['severity']:<4} {r['status']:<6} "
+            f"{r['assignedTo']:<8} {r['title']}"
+        )
+    return '\n'.join(lines)
 
 
-def cmd_bugs(c, args, raw):
-    if args.project:
-        return c.get(f'/projectbugs/{args.project}', status=args.status, limit=args.limit, page=args.page)
-    if args.execution:
-        return c.get(f'/executionbugs/{args.execution}', status=args.status, limit=args.limit, page=args.page)
-    pid = args.product or c.defaults.get('default_product')
+def cmd_bug(c: Client, args) -> Any:
+    pid = args.project or c.defaults.get('default_project')
     if not pid:
-        raise SystemExit('one of --product/--project/--execution required')
-    return c.get(f'/bugs/{pid}', status=args.status, limit=args.limit, page=args.page)
+        raise SystemExit('--project ID required to look up bug detail (legacy API has no global bug endpoint)')
+    bugs, users = c.get_bugs(pid, page_size=args.limit)
+    target = next((b for b in bugs if str(b.get('id')) == str(args.id)), None)
+    if not target:
+        raise SystemExit(f'Bug {args.id} not found in project {pid}')
+    if args.raw or args.json:
+        return target
+    view = {
+        'id': target.get('id'),
+        'title': target.get('title'),
+        'severity': SEVERITY_LABEL.get(str(target.get('severity')), target.get('severity')),
+        'status': STATUS_LABEL.get(target.get('status'), target.get('status')),
+        'type': TYPE_LABEL.get(target.get('type'), target.get('type')),
+        'assignedTo': _display_name(users, target.get('assignedTo', '')),
+        'openedBy': _display_name(users, target.get('openedBy', '')),
+        'openedDate': target.get('openedDate'),
+        'resolvedBy': _display_name(users, target.get('resolvedBy', '')),
+        'resolution': RESOLUTION_LABEL.get(target.get('resolution'), target.get('resolution')),
+        'url': f"{c.url}/bug-view-{target.get('id')}.html",
+        'steps': clean_html(target.get('steps', '')),
+    }
+    lines = []
+    for k, v in view.items():
+        if k == 'steps':
+            lines.append(f'\n--- 重现步骤 ---\n{v}')
+        else:
+            lines.append(f'{k}: {v}')
+    return '\n'.join(lines)
 
 
-def cmd_tasks(c, args, raw):
-    if args.execution:
-        path = f'/tasks/{args.execution}'
-    else:
-        path = '/tasks'
-    return c.get(path, status=args.status, type=args.type, limit=args.limit, page=args.page)
-
-
-def cmd_todos(c, args, raw):
-    return c.get('/todos', status=args.status, type=args.type, limit=args.limit, page=args.page)
-
-
-def cmd_users(c, args, raw):
-    return c.get('/users', full=1 if args.full else 0, type=args.type, limit=args.limit, page=args.page)
-
-
-def cmd_get(c, args, raw):
-    kind = args.kind
-    valid = {'bug', 'task', 'story', 'product', 'project', 'execution', 'todo', 'user', 'build', 'release', 'doc'}
-    if kind not in valid:
-        raise SystemExit(f'unknown kind {kind}; expected one of {sorted(valid)}')
-    return c.get(f'/{kind}/{args.id}', fields=args.fields)
-
-
-# ---- create ----
-
-def cmd_create_bug(c, args, raw):
-    pid = args.product or c.defaults.get('default_product')
+def cmd_bug_report(c: Client, args) -> Any:
+    pid = args.project or c.defaults.get('default_project')
     if not pid:
-        raise SystemExit('--product required')
-    body = {
-        'title': args.title,
-        'pri': args.pri,
-        'severity': args.severity,
-        'type': args.type,
-        'openedBuild': args.opened_build or ['trunk'],
-        'steps': args.steps or '',
-        'product': pid,
-    }
-    for k, v in (('assignedTo', args.assigned_to), ('execution', args.execution),
-                 ('project', args.project), ('module', args.module), ('story', args.story),
-                 ('deadline', args.deadline), ('os', args.os), ('browser', args.browser),
-                 ('keywords', args.keywords), ('mailto', args.mailto), ('plan', args.plan)):
-        if v is not None:
-            body[k] = v
-    return c.post(f'/bugs/{pid}', json_body=body)
+        raise SystemExit('--project ID required')
+    bugs, users = c.get_bugs(pid, page_size=args.limit)
+    active = [b for b in bugs if b.get('status') == 'active']
+
+    stats: dict[str, dict[str, int]] = {}
+    for b in active:
+        name = _display_name(users, b.get('assignedTo', ''))
+        s = stats.setdefault(name, {'total': 0, 's1': 0, 's2': 0, 's3': 0, 's4': 0})
+        s['total'] += 1
+        key = f"s{b.get('severity', '4')}"
+        if key in s:
+            s[key] += 1
+        else:
+            s['s4'] += 1
+
+    ordered = sorted(stats.items(), key=lambda kv: -kv[1]['total'])
+
+    if args.json:
+        return {
+            'project': int(pid) if str(pid).isdigit() else pid,
+            'active_count': len(active),
+            'by_assignee': [{'assignee': n, **s} for n, s in ordered],
+        }
+
+    # markdown
+    md = [f'**Bug 统计** (project {pid}) | {len(active)} 个活跃', '']
+    for name, s in ordered:
+        parts = []
+        for key, label in (('s1', '严重'), ('s2', '主要'), ('s3', '次要'), ('s4', '轻微')):
+            if s[key]:
+                parts.append(f"{s[key]}{label}")
+        detail = ' '.join(parts) or '-'
+        md.append(f"> {name}: **{s['total']}** ({detail})")
+    return '\n'.join(md)
 
 
-def cmd_create_task(c, args, raw):
-    eid = args.execution or c.defaults.get('default_execution')
-    if not eid:
-        raise SystemExit('--execution required')
-    body = {
-        'name': args.name,
-        'type': args.type,
-        'assignedTo': args.assigned_to,
-        'estStarted': args.est_started or _today(),
-        'deadline': args.deadline or _today(),
-        'pri': args.pri,
-    }
-    for k, v in (('estimate', args.estimate), ('story', args.story), ('module', args.module),
-                 ('desc', args.desc), ('parent', args.parent), ('mailto', args.mailto)):
-        if v is not None:
-            body[k] = v
-    return c.post(f'/tasks/{eid}', json_body=body)
-
-
-def cmd_create_story(c, args, raw):
-    pid = args.product or c.defaults.get('default_product')
+def cmd_poll_bugs(c: Client, args) -> Any:
+    pid = args.project or c.defaults.get('default_project')
     if not pid:
-        raise SystemExit('--product required')
-    body = {
-        'title': args.title,
-        'spec': args.spec,
-        'pri': args.pri,
-        'category': args.category,
-    }
-    for k, v in (('estimate', args.estimate), ('reviewer', args.reviewer if not args.no_reviewer else ''),
-                 ('module', args.module), ('verify', args.verify), ('source', args.source),
-                 ('keywords', args.keywords), ('plan', args.plan), ('parent', args.parent),
-                 ('type', args.type), ('mailto', args.mailto)):
-        if v is not None:
-            body[k] = v
-    return c.post(f'/stories/{pid}', json_body=body)
+        raise SystemExit('--project ID required')
+    interval = max(10, args.interval)
+    known: dict[str, str] = {}  # id -> assignedTo
+    initialized = False
+    print(f"polling project {pid} every {interval}s (Ctrl+C to stop)", file=sys.stderr)
+    try:
+        while True:
+            bugs, users = c.get_bugs(pid, page_size=args.limit)
+            current = {str(b['id']): b.get('assignedTo', '') for b in bugs if b.get('status') == 'active'}
+
+            if not initialized:
+                known = current
+                initialized = True
+                print(f"[{time.strftime('%H:%M:%S')}] baseline: {len(current)} active bugs", file=sys.stderr)
+            else:
+                new_ids = [i for i in current if i not in known]
+                resolved_ids = [i for i in known if i not in current]
+                reassigned = [
+                    (i, known[i], current[i]) for i in current
+                    if i in known and known[i] != current[i]
+                ]
+                events: list[dict] = []
+                by_id = {str(b['id']): b for b in bugs}
+                for i in new_ids:
+                    b = by_id.get(i, {})
+                    events.append({
+                        'event': 'new',
+                        'id': int(i),
+                        'title': b.get('title'),
+                        'severity': SEVERITY_LABEL.get(str(b.get('severity'))),
+                        'assignedTo': _display_name(users, b.get('assignedTo', '')),
+                    })
+                for i in resolved_ids:
+                    events.append({'event': 'resolved_or_closed', 'id': int(i)})
+                for i, old, new in reassigned:
+                    events.append({
+                        'event': 'reassigned', 'id': int(i),
+                        'from': _display_name(users, old),
+                        'to': _display_name(users, new),
+                    })
+                if events:
+                    for e in events:
+                        print(json.dumps(e, ensure_ascii=False), flush=True)
+                else:
+                    print(f"[{time.strftime('%H:%M:%S')}] no change ({len(current)} active)",
+                          file=sys.stderr)
+                known = current
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        print("stopped.", file=sys.stderr)
+        return None
 
 
-def cmd_create_todo(c, args, raw):
-    body = {
-        'name': args.name,
-        'date': args.date or _today(),
-        'pri': args.pri,
-        'desc': args.desc or '',
-        'type': args.type,
-        'status': 'wait',
-    }
-    if args.begin: body['begin'] = args.begin.replace(':', '')
-    if args.end: body['end'] = args.end.replace(':', '')
-    if args.private: body['private'] = 1
-    return c.post('/todos', json_body=body)
+def cmd_users(c: Client, args) -> Any:
+    # Users map is embedded in any project-bug response; reuse that.
+    pid = args.project or c.defaults.get('default_project')
+    if not pid:
+        projects = c.get_projects()
+        if not projects:
+            raise SystemExit('No projects visible; cannot enumerate users.')
+        pid = projects[0].get('id')
+    _, users = c.get_bugs(pid, page_size=1)
+    # Strip the "" sentinel key some instances include.
+    users = {k: v for k, v in users.items() if k}
+    if args.json or args.raw:
+        return users
+    lines = [f'{len(users)} user(s):']
+    for acc, name in sorted(users.items()):
+        lines.append(f'  {acc:<16} {name}')
+    return '\n'.join(lines)
 
 
-def cmd_create_execution(c, args, raw):
-    body = {
-        'project': args.project,
-        'name': args.name,
-        'begin': args.begin,
-        'end': args.end,
-    }
-    for k, v in (('PM', args.pm), ('PO', args.po), ('QD', args.qd), ('RD', args.rd),
-                 ('lifetime', args.lifetime), ('desc', args.desc), ('parent', args.parent)):
-        if v is not None:
-            body[k] = v
-    return c.post(f'/executions/{args.project}', json_body=body)
+# ---------- argparse ----------
 
+def _add_common(p: argparse.ArgumentParser) -> None:
+    p.add_argument('--json', action='store_true', help='emit JSON (summary shape)')
+    p.add_argument('--raw', action='store_true', help='emit raw upstream payload as JSON')
 
-def cmd_create_project(c, args, raw):
-    body = {
-        'name': args.name,
-        'begin': args.begin,
-        'end': args.end,
-        'products': args.products.split(',') if isinstance(args.products, str) else args.products,
-        'model': args.model,
-    }
-    if args.pm: body['PM'] = args.pm
-    if args.parent: body['parent'] = args.parent
-    return c.post('/projects', json_body=body)
-
-
-def cmd_batch_create_tasks(c, args, raw):
-    eid = args.execution or c.defaults.get('default_execution')
-    if not eid:
-        raise SystemExit('--execution required')
-    tasks = json.loads(Path(args.file).read_text(encoding='utf-8'))
-    if isinstance(tasks, dict) and 'tasks' in tasks:
-        tasks = tasks['tasks']
-    return c.post(f'/taskbatchcreate/{eid}', json_body={'tasks': tasks})
-
-
-# ---- transitions ----
-
-def cmd_assign_bug(c, args, raw):
-    return c.post(f'/bugassign/{args.id}', json_body={'assignedTo': args.to, 'comment': args.comment or ''})
-
-def cmd_resolve_bug(c, args, raw):
-    body = {'resolution': args.resolution, 'comment': args.comment or ''}
-    if args.build: body['resolvedBuild'] = args.build
-    if args.duplicate_id: body['duplicateBug'] = args.duplicate_id
-    if args.assigned_to: body['assignedTo'] = args.assigned_to
-    body['resolvedDate'] = args.resolved_date or _now()
-    return c.post(f'/bugresolve/{args.id}', json_body=body)
-
-def cmd_close_bug(c, args, raw):
-    return c.post(f'/bugclose/{args.id}', json_body={'comment': args.comment or ''})
-
-def cmd_activate_bug(c, args, raw):
-    body = {'comment': args.comment or ''}
-    if args.assigned_to: body['assignedTo'] = args.assigned_to
-    if args.opened_build: body['openedBuild'] = args.opened_build
-    return c.post(f'/bugactive/{args.id}', json_body=body)
-
-def cmd_confirm_bug(c, args, raw):
-    body = {'comment': args.comment or ''}
-    if args.assigned_to: body['assignedTo'] = args.assigned_to
-    return c.post(f'/bugconfirm/{args.id}', json_body=body)
-
-def cmd_assign_task(c, args, raw):
-    body = {'assignedTo': args.to, 'comment': args.comment or ''}
-    if args.left is not None: body['left'] = args.left
-    return c.post(f'/taskassignto/{args.id}', json_body=body)
-
-def cmd_start_task(c, args, raw):
-    body = {'comment': args.comment or ''}
-    if args.assigned_to: body['assignedTo'] = args.assigned_to
-    if args.consumed is not None: body['consumed'] = args.consumed
-    if args.left is not None: body['left'] = args.left
-    body['realStarted'] = args.real_started or _now()
-    return c.post(f'/taskstart/{args.id}', json_body=body)
-
-def cmd_finish_task(c, args, raw):
-    body = {
-        'currentConsumed': args.consumed,
-        'realStarted': args.real_started or _now(),
-        'finishedDate': args.finished_date or _now(),
-        'comment': args.comment or '',
-    }
-    if args.assigned_to: body['assignedTo'] = args.assigned_to
-    return c.post(f'/taskfinish/{args.id}', json_body=body)
-
-def cmd_close_task(c, args, raw):
-    return c.post(f'/taskclose/{args.id}', json_body={'comment': args.comment or ''})
-
-def cmd_activate_task(c, args, raw):
-    body = {'comment': args.comment or ''}
-    if args.left is not None: body['left'] = args.left
-    if args.assigned_to: body['assignedTo'] = args.assigned_to
-    return c.post(f'/taskactive/{args.id}', json_body=body)
-
-def cmd_assign_story(c, args, raw):
-    return c.post(f'/storyassignto/{args.id}', json_body={'assignedTo': args.to, 'comment': args.comment or ''})
-
-def cmd_close_story(c, args, raw):
-    body = {'closedReason': args.reason, 'comment': args.comment or ''}
-    if args.duplicate_id: body['duplicateStory'] = args.duplicate_id
-    return c.post(f'/storyclose/{args.id}', json_body=body)
-
-def cmd_review_story(c, args, raw):
-    body = {
-        'result': args.result,
-        'reviewedDate': args.reviewed_date or _today(),
-        'comment': args.comment or '',
-    }
-    if args.closed_reason: body['closedReason'] = args.closed_reason
-    return c.post(f'/storyreview/{args.id}', json_body=body)
-
-def cmd_finish_todo(c, args, raw):
-    return c.get(f'/todofinish/{args.id}')
-
-def cmd_activate_todo(c, args, raw):
-    return c.get(f'/todoactivate/{args.id}')
-
-
-# ---- update / delete ----
-
-def cmd_update(c, args, raw):
-    fields = _parse_kv_list(args.field)
-    return c.put(f'/{args.kind}/{args.id}', json_body=fields)
-
-
-def cmd_delete(c, args, raw):
-    if not args.yes:
-        raise SystemExit('refusing to delete without --yes')
-    return c.delete(f'/{args.kind}/{args.id}')
-
-
-# ---------- argparse wiring ----------
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog='zentao')
-    p.add_argument('--config', help='override config path')
-    p.add_argument('--json', action='store_true', help='emit JSON output')
-    p.add_argument('--raw', action='store_true', help='do not trim/format response')
+    p = argparse.ArgumentParser(prog='zentao-cli',
+                                description='ZenTao session-based .json API client')
+    p.add_argument('--config', type=Path, default=None, help='path to config.yaml')
     sub = p.add_subparsers(dest='cmd', required=True)
 
-    sub.add_parser('whoami').set_defaults(handler=cmd_whoami)
+    sp = sub.add_parser('whoami', help='verify auth and show current user')
+    _add_common(sp)
 
-    def add_pager(s):
-        s.add_argument('--limit', type=int, default=20)
-        s.add_argument('--page', type=int, default=1)
+    sp = sub.add_parser('projects', help='list projects I am a member of')
+    sp.add_argument('--all', action='store_true', help='include closed projects')
+    _add_common(sp)
 
-    s = sub.add_parser('products'); s.add_argument('--status', default='all'); add_pager(s); s.set_defaults(handler=cmd_products)
-    s = sub.add_parser('projects'); s.add_argument('--status', default='all'); add_pager(s); s.set_defaults(handler=cmd_projects)
-    s = sub.add_parser('executions')
-    s.add_argument('--project', type=int); s.add_argument('--status', default='all'); s.add_argument('--with-project', action='store_true'); add_pager(s); s.set_defaults(handler=cmd_executions)
+    sp = sub.add_parser('bugs', help='list bugs of a project')
+    sp.add_argument('--project', type=int, help='project id (default: default_project)')
+    sp.add_argument('--status', choices=['active', 'resolved', 'closed', 'all'],
+                    default='active')
+    sp.add_argument('--assigned-to', help='filter by assignee account')
+    sp.add_argument('--limit', type=int, default=1000, help='page size (Cookie pagerProjectBug)')
+    _add_common(sp)
 
-    s = sub.add_parser('stories'); s.add_argument('--product', type=int); s.add_argument('--status', default='unclosed'); add_pager(s); s.set_defaults(handler=cmd_stories)
-    s = sub.add_parser('bugs')
-    s.add_argument('--product', type=int); s.add_argument('--project', type=int); s.add_argument('--execution', type=int)
-    s.add_argument('--status', default=''); add_pager(s); s.set_defaults(handler=cmd_bugs)
-    s = sub.add_parser('tasks'); s.add_argument('--execution', type=int); s.add_argument('--status', default='all'); s.add_argument('--type', default='assignedTo'); add_pager(s); s.set_defaults(handler=cmd_tasks)
-    s = sub.add_parser('todos'); s.add_argument('--status', default='all'); s.add_argument('--type', default='all'); add_pager(s); s.set_defaults(handler=cmd_todos)
-    s = sub.add_parser('users'); s.add_argument('--full', action='store_true'); s.add_argument('--type', default='bydept'); add_pager(s); s.set_defaults(handler=cmd_users)
+    sp = sub.add_parser('bug', help='show bug detail (by scanning its project)')
+    sp.add_argument('id', type=int)
+    sp.add_argument('--project', type=int)
+    sp.add_argument('--limit', type=int, default=1000)
+    _add_common(sp)
 
-    s = sub.add_parser('get'); s.add_argument('kind'); s.add_argument('id', type=int); s.add_argument('--fields', default=''); s.set_defaults(handler=cmd_get)
+    sp = sub.add_parser('bug-report', help='markdown stats by assignee')
+    sp.add_argument('--project', type=int)
+    sp.add_argument('--limit', type=int, default=1000)
+    _add_common(sp)
 
-    # creates
-    s = sub.add_parser('create-bug')
-    s.add_argument('--product', type=int); s.add_argument('--title', required=True); s.add_argument('--steps', default='')
-    s.add_argument('--pri', type=int, default=3); s.add_argument('--severity', type=int, default=3)
-    s.add_argument('--type', default='codeerror'); s.add_argument('--opened-build', nargs='*', default=None)
-    s.add_argument('--assigned-to'); s.add_argument('--execution', type=int); s.add_argument('--project', type=int)
-    s.add_argument('--module', type=int); s.add_argument('--story', type=int); s.add_argument('--deadline'); s.add_argument('--os'); s.add_argument('--browser'); s.add_argument('--keywords'); s.add_argument('--mailto'); s.add_argument('--plan', type=int)
-    s.set_defaults(handler=cmd_create_bug)
+    sp = sub.add_parser('poll-bugs', help='poll bug changes; emits NDJSON events')
+    sp.add_argument('--project', type=int)
+    sp.add_argument('--interval', type=int, default=60, help='seconds (min 10)')
+    sp.add_argument('--limit', type=int, default=1000)
+    _add_common(sp)
 
-    s = sub.add_parser('create-task')
-    s.add_argument('--execution', type=int); s.add_argument('--name', required=True)
-    s.add_argument('--type', default='devel'); s.add_argument('--assigned-to', required=True)
-    s.add_argument('--est-started'); s.add_argument('--deadline')
-    s.add_argument('--pri', type=int, default=3); s.add_argument('--estimate', type=float)
-    s.add_argument('--story', type=int); s.add_argument('--module', type=int); s.add_argument('--desc'); s.add_argument('--parent', type=int); s.add_argument('--mailto')
-    s.set_defaults(handler=cmd_create_task)
-
-    s = sub.add_parser('create-story')
-    s.add_argument('--product', type=int); s.add_argument('--title', required=True); s.add_argument('--spec', required=True)
-    s.add_argument('--pri', type=int, default=3); s.add_argument('--category', default='feature')
-    s.add_argument('--type', default='story'); s.add_argument('--estimate', type=float)
-    s.add_argument('--reviewer'); s.add_argument('--no-reviewer', action='store_true')
-    s.add_argument('--module', type=int); s.add_argument('--verify'); s.add_argument('--source'); s.add_argument('--keywords'); s.add_argument('--plan', type=int); s.add_argument('--parent', type=int); s.add_argument('--mailto')
-    s.set_defaults(handler=cmd_create_story)
-
-    s = sub.add_parser('create-todo')
-    s.add_argument('--name', required=True); s.add_argument('--date'); s.add_argument('--pri', type=int, default=3)
-    s.add_argument('--desc'); s.add_argument('--type', default='custom'); s.add_argument('--begin'); s.add_argument('--end'); s.add_argument('--private', action='store_true')
-    s.set_defaults(handler=cmd_create_todo)
-
-    s = sub.add_parser('create-execution')
-    s.add_argument('--project', type=int, required=True); s.add_argument('--name', required=True)
-    s.add_argument('--begin', required=True); s.add_argument('--end', required=True)
-    s.add_argument('--pm'); s.add_argument('--po'); s.add_argument('--qd'); s.add_argument('--rd')
-    s.add_argument('--lifetime', default='short'); s.add_argument('--desc'); s.add_argument('--parent', type=int)
-    s.set_defaults(handler=cmd_create_execution)
-
-    s = sub.add_parser('create-project')
-    s.add_argument('--name', required=True); s.add_argument('--begin', required=True); s.add_argument('--end', required=True)
-    s.add_argument('--products', required=True, help='comma-separated product ids')
-    s.add_argument('--model', default='scrum'); s.add_argument('--pm'); s.add_argument('--parent', type=int)
-    s.set_defaults(handler=cmd_create_project)
-
-    s = sub.add_parser('batch-create-tasks')
-    s.add_argument('--execution', type=int); s.add_argument('--file', required=True)
-    s.set_defaults(handler=cmd_batch_create_tasks)
-
-    # transitions
-    def _id_arg(s): s.add_argument('id', type=int)
-
-    s = sub.add_parser('assign-bug'); _id_arg(s); s.add_argument('--to', required=True); s.add_argument('--comment'); s.set_defaults(handler=cmd_assign_bug)
-    s = sub.add_parser('resolve-bug'); _id_arg(s); s.add_argument('--resolution', required=True); s.add_argument('--build', type=int); s.add_argument('--duplicate-id', type=int); s.add_argument('--assigned-to'); s.add_argument('--resolved-date'); s.add_argument('--comment'); s.set_defaults(handler=cmd_resolve_bug)
-    s = sub.add_parser('close-bug'); _id_arg(s); s.add_argument('--comment'); s.set_defaults(handler=cmd_close_bug)
-    s = sub.add_parser('activate-bug'); _id_arg(s); s.add_argument('--assigned-to'); s.add_argument('--opened-build'); s.add_argument('--comment'); s.set_defaults(handler=cmd_activate_bug)
-    s = sub.add_parser('confirm-bug'); _id_arg(s); s.add_argument('--assigned-to'); s.add_argument('--comment'); s.set_defaults(handler=cmd_confirm_bug)
-
-    s = sub.add_parser('assign-task'); _id_arg(s); s.add_argument('--to', required=True); s.add_argument('--left', type=float); s.add_argument('--comment'); s.set_defaults(handler=cmd_assign_task)
-    s = sub.add_parser('start-task'); _id_arg(s); s.add_argument('--assigned-to'); s.add_argument('--consumed', type=float); s.add_argument('--left', type=float); s.add_argument('--real-started'); s.add_argument('--comment'); s.set_defaults(handler=cmd_start_task)
-    s = sub.add_parser('finish-task'); _id_arg(s); s.add_argument('--consumed', type=float, required=True); s.add_argument('--real-started'); s.add_argument('--finished-date'); s.add_argument('--assigned-to'); s.add_argument('--comment'); s.set_defaults(handler=cmd_finish_task)
-    s = sub.add_parser('close-task'); _id_arg(s); s.add_argument('--comment'); s.set_defaults(handler=cmd_close_task)
-    s = sub.add_parser('activate-task'); _id_arg(s); s.add_argument('--left', type=float); s.add_argument('--assigned-to'); s.add_argument('--comment'); s.set_defaults(handler=cmd_activate_task)
-
-    s = sub.add_parser('assign-story'); _id_arg(s); s.add_argument('--to', required=True); s.add_argument('--comment'); s.set_defaults(handler=cmd_assign_story)
-    s = sub.add_parser('close-story'); _id_arg(s); s.add_argument('--reason', required=True); s.add_argument('--duplicate-id', type=int); s.add_argument('--comment'); s.set_defaults(handler=cmd_close_story)
-    s = sub.add_parser('review-story'); _id_arg(s); s.add_argument('--result', required=True, choices=['pass', 'reject', 'revert', 'clarify']); s.add_argument('--reviewed-date'); s.add_argument('--closed-reason'); s.add_argument('--comment'); s.set_defaults(handler=cmd_review_story)
-    s = sub.add_parser('finish-todo'); _id_arg(s); s.set_defaults(handler=cmd_finish_todo)
-    s = sub.add_parser('activate-todo'); _id_arg(s); s.set_defaults(handler=cmd_activate_todo)
-
-    # update/delete
-    s = sub.add_parser('update'); s.add_argument('kind'); s.add_argument('id', type=int); s.add_argument('--field', action='append', default=[]); s.set_defaults(handler=cmd_update)
-    s = sub.add_parser('delete'); s.add_argument('kind'); s.add_argument('id', type=int); s.add_argument('--yes', action='store_true'); s.set_defaults(handler=cmd_delete)
+    sp = sub.add_parser('users', help='dump account->realname map')
+    sp.add_argument('--project', type=int, help='any project id; used to extract map')
+    _add_common(sp)
 
     return p
 
 
+HANDLERS = {
+    'whoami': cmd_whoami,
+    'projects': cmd_projects,
+    'bugs': cmd_bugs,
+    'bug': cmd_bug,
+    'bug-report': cmd_bug_report,
+    'poll-bugs': cmd_poll_bugs,
+    'users': cmd_users,
+}
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    cfg = Path(args.config) if args.config else None
     try:
-        client = Client.from_config(cfg)
-        result = args.handler(client, args, args.raw)
+        client = Client.from_config(args.config)
+        handler = HANDLERS[args.cmd]
+        result = handler(client, args)
+        if result is not None:
+            _emit(result, as_json=getattr(args, 'json', False) or getattr(args, 'raw', False))
+        return 0
     except ZentaoError as e:
-        sys.stderr.write(f'[zentao error {e.status}] {e.message}\n')
-        if e.payload:
-            sys.stderr.write(json.dumps(e.payload, ensure_ascii=False, indent=2, default=str) + '\n')
+        print(f'[zentao error {e.status}] {e.message}', file=sys.stderr)
         return 2
     except SystemExit:
         raise
-    except Exception as e:
-        sys.stderr.write(f'[error] {type(e).__name__}: {e}\n')
+    except Exception as e:  # noqa: BLE001
+        print(f'[unexpected] {type(e).__name__}: {e}', file=sys.stderr)
         return 1
-    _emit(result, args.json)
-    return 0
-
-
-if __name__ == '__main__':
-    sys.exit(main())
 
 
 if __name__ == '__main__':

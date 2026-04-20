@@ -1,131 +1,114 @@
-# ZenTao field cheat sheet
+# ZenTao field reference (legacy `.json` API)
 
-## Bug
-
-Required on create: `title, pri, severity, type, openedBuild`.
+## Project (`/my-project.json` → `projects[]`)
 
 | Field | Type | Notes |
 |---|---|---|
-| title | string |  |
-| pri | int 1–4 | 1 highest |
-| severity | int 1–4 | 1 most severe |
-| type | enum | `codeerror, interface, designdefect, config, install, security, performance, standard, automation, designchange, newfeature, designissue, others` |
-| openedBuild | string\|array | default `["trunk"]`; build name or id |
-| product | int | required (path or body) |
-| project, execution | int | optional but recommended |
-| module, branch, plan | int | |
-| story, task, case | int | linkage |
-| assignedTo | string | account |
-| os | enum | `all, windows, win10, win8, win7, vista, winxp, win2012, win2008, win2003, win2000, android, ios, wp8, wp7, symbian, linux, freebsd, osx, unix, others` |
-| browser | enum | `all, ie, ie11, ie10, ie9, ie8, ie7, ie6, chrome, firefox, opera, safari, maxthon, uc, others` |
-| steps | string (HTML) | reproduction steps |
-| keywords, mailto, deadline | | |
-| feedbackBy | string |  |
+| `id` | string digit | Project id (pass to bug/task endpoints) |
+| `name` | string | Display name |
+| `type` | enum | `waterfall` / `sprint` / `agileplus` / `kanban` |
+| `status` | enum | `wait` / `doing` / `suspended` / `closed` |
+| `begin` / `end` | string `YYYY-MM-DD` | |
+| `PM` | string | Account of the PM (look up via `users` map of any bug call) |
+| `openedBy` / `openedDate` | string | |
+| `closedBy` / `closedDate` | string | |
 
-Resolutions on `bugresolve`: `bydesign, duplicate, external, fixed, notrepro, postponed, willnotfix, tostory`.
-Statuses: `active, resolved, closed`.
+The CLI filters out `status=closed` by default; pass `--all` to include.
 
-## Task
-
-Required on create: `name, assignedTo, type, estStarted, deadline`.
+## Bug (`/project-bug-{id}.json` → `bugs[]`)
 
 | Field | Type | Notes |
 |---|---|---|
-| name | string |  |
-| type | enum | `design, devel, test, study, discuss, ui, affair, misc, request` |
-| pri | int 1–4 |  |
-| estimate | float | hours |
-| consumed, left | float | hours |
-| story | int | linked story id |
-| execution, project, module | int |  |
-| parent | int | parent task id (for subtasks) |
-| assignedTo | string |  |
-| estStarted, deadline | date | `YYYY-MM-DD` |
-| desc | string (HTML) |  |
-| mode | enum | `linear, multi` (when multiple=true) |
-| multiple | bool | turns on team mode |
-| team, teamEstimate | array | per-member assignment |
+| `id` | string digit | Bug id |
+| `title` | string | |
+| `severity` | string `'1'`–`'4'` | See severity table below; **string, not int** |
+| `pri` | string `'1'`–`'4'` | Priority, same convention |
+| `status` | enum | `active` / `resolved` / `closed` |
+| `type` | enum | See type table |
+| `assignedTo` | string | Account; use `users` map for display name. On closed bugs ZenTao may write the literal `Closed`. |
+| `openedBy` / `openedDate` | string | |
+| `resolvedBy` / `resolvedDate` | string | |
+| `resolution` | enum | See resolution table |
+| `steps` | HTML string | Reproduction steps with `{image.png}` placeholders; run through `clean_html()` before display |
+| `product` / `project` / `execution` | string digit | |
 
-Statuses: `wait, doing, pause, done, cancel, closed`.
-Finish requires `currentConsumed, realStarted, finishedDate`.
+## Enum tables
 
-## Story
+### Severity (`severity`)
 
-Required on create: `title, spec, pri, category`.
+| Code | Label | zh |
+|---|---|---|
+| `1` | Critical | 严重 |
+| `2` | Major | 主要 |
+| `3` | Minor | 次要 |
+| `4` | Trivial | 轻微 |
+
+### Bug status
+
+| Code | zh |
+|---|---|
+| `active` | 激活 |
+| `resolved` | 已解决 |
+| `closed` | 已关闭 |
+
+### Bug type
+
+| Code | zh |
+|---|---|
+| `codeerror` | 代码错误 |
+| `config` | 配置相关 |
+| `install` | 安装部署 |
+| `security` | 安全相关 |
+| `performance` | 性能问题 |
+| `standard` | 标准规范 |
+| `automation` | 测试脚本 |
+| `designdefect` | 设计缺陷 |
+| `others` | 其他 |
+
+Instance-specific variants (e.g. `newfeature`, `trackthru`) may appear —
+the CLI displays the raw key when not in the map.
+
+### Resolution
+
+| Code | zh |
+|---|---|
+| `bydesign` | 设计如此 |
+| `duplicate` | 重复Bug |
+| `external` | 外部原因 |
+| `fixed` | 已解决 |
+| `notrepro` | 无法重现 |
+| `postponed` | 延期处理 |
+| `willnotfix` | 不予解决 |
+| `tostory` | 转为需求 |
+
+Some instances use plural `tostorys`; displayed raw if unmapped.
+
+## Users map (`users` inside bug/task responses)
+
+Object of `{ account: realname }`. Always merge responses rather than
+relying on a single entry — not every response includes every user.
+Empty-string keys (`"": ""`) are sentinels from ZenTao and should be
+filtered.
+
+## Task (`/project-task-{id}.json` → `tasks[]`) — quick reference
 
 | Field | Type | Notes |
 |---|---|---|
-| title | string |  |
-| spec | string (HTML) | description |
-| verify | string (HTML) | acceptance criteria |
-| type | enum | `story, requirement, epic` (default `story`) |
-| category | enum | `feature, ui, perf, interface, others` |
-| pri | int 1–4 |  |
-| estimate | float | story points/hours |
-| product, branch, module, plan | int |  |
-| reviewer | string | account; setting it auto-flips status to `reviewing` if `status=active` |
-| status | enum | `draft, active, reviewing, changing, closed` |
-| source | enum | `customer, user, po, market, research, competitor, study, other` |
-| keywords, mailto | string |  |
-| parent | int |  |
-| grade | int | maturity |
+| `id` | string digit | |
+| `name` | string | |
+| `status` | enum | `wait` / `doing` / `done` / `pause` / `cancel` / `closed` |
+| `pri` | string `'1'`–`'4'` | |
+| `assignedTo` | string | |
+| `estimate` / `consumed` / `left` | string float | Hours |
+| `estStarted` / `realStarted` / `deadline` / `finishedDate` | date | |
 
-Story close reasons: `done, subdivided, duplicate, postponed, willnotdo, bydesign, cancel`.
-Review results: `pass, reject, revert, clarify`.
+## Story (`/project-story-{id}.json` → `stories[]`)
 
-## Product
-
-Required on create: `name` (+ `code` if site uses codes).
-
-| Field | Notes |
-|---|---|
-| program | parent program id |
-| line | product line |
-| PO, QD, RD | account names |
-| type | `normal, branch, platform` |
-| acl | `open, private, custom` |
-| whitelist | array of accounts |
-
-## Project
-
-Required: `name, begin, end, products` (+ `code`).
-
-| Field | Notes |
-|---|---|
-| model | `scrum, waterfall, agileplus, waterfallplus, kanban, ipd` |
-| multiple | `'on'` or `''` |
-| parent | program id |
-| PM | account |
-| acl | `open, private, custom` |
-
-## Execution
-
-Required: `name, begin, end`. Pass `project`.
-
-| Field | Notes |
-|---|---|
-| lifetime | `short, long, ops` |
-| days | int |
-| percent | int (0–100) |
-| parent | parent execution |
-| PO, PM, QD, RD | accounts |
-| products, plans, teamMembers | arrays |
-
-## Todo
-
-Required: `name`.
-
-| Field | Notes |
-|---|---|
-| type | `custom, bug, task, story, testtask, feedback, ...` |
-| date | `YYYY-MM-DD` (default today) |
-| begin, end | `HHMM` (no colon) |
-| status | `wait, doing, done, closed` |
-| pri | 1–4 |
-| private | bool |
-
-## Common date/time formats
-
-- `YYYY-MM-DD` for dates (deadline, begin, end on tasks/projects)
-- `YYYY-MM-DD HH:MM:SS` for datetimes (resolvedDate, finishedDate, reviewedDate)
-- `HHMM` for time-of-day on todos
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string digit | |
+| `title` | string | |
+| `status` | enum | `draft` / `active` / `changing` / `reviewing` / `closed` |
+| `pri` | string `'1'`–`'4'` | |
+| `stage` | enum | `wait` / `planned` / `projected` / `developing` / `developed` / `testing` / `tested` / `verified` / `released` / `closed` |
+| `assignedTo` | string | |
