@@ -133,8 +133,12 @@ class Client:
         defaults: dict | None = None,
     ) -> None:
         self.url = url.rstrip('/')
-        self.account = account
-        self.password = password
+        # ZenTao stores account as a string server-side. Coerce defensively here
+        # because YAML parsers (both PyYAML and our _tiny_yaml) turn numeric-
+        # looking account names like `4224` into ints, which then fails to
+        # compare against the string `assignedTo` field on bug records.
+        self.account = str(account)
+        self.password = str(password)
         self.token_cache = token_cache or _default_cache_path()
         self.timeout = timeout
         self.verify_ssl = verify_ssl
@@ -158,7 +162,7 @@ class Client:
         return cls(
             url=cfg['url'],
             account=cfg['account'],
-            password=str(cfg['password']),
+            password=cfg['password'],
             token_cache=Path(os.path.expanduser(tok)) if tok else None,
             timeout=int(cfg.get('timeout', 30)),
             verify_ssl=bool(cfg.get('verify_ssl', True)),
@@ -340,6 +344,13 @@ class Client:
             f'project-bug-{project_id}',
             cookies={'pagerProjectBug': str(page_size)},
         )
+        bugs = as_list(inner.get('bugs'))
+        users = inner.get('users') or {}
+        return bugs, users
+
+    def get_my_bugs(self, *, page_size: int = 500) -> tuple[list[dict], dict[str, str]]:
+        """Bugs assigned to the current account — server-filtered."""
+        inner = self.get_json('my-bug', cookies={'pagerMyBug': str(page_size)})
         bugs = as_list(inner.get('bugs'))
         users = inner.get('users') or {}
         return bugs, users

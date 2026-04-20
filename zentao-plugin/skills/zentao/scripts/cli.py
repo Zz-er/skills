@@ -103,6 +103,50 @@ def cmd_projects(c: Client, args) -> Any:
     return '\n'.join(lines)
 
 
+def cmd_my_bugs(c: Client, args) -> Any:
+    bugs, users = c.get_my_bugs(page_size=args.limit)
+    if args.status and args.status != 'all':
+        bugs = [b for b in bugs if b.get('status') == args.status]
+    if args.raw:
+        return {'bugs': bugs, 'users': users}
+    rows = []
+    for b in bugs:
+        rows.append({
+            'id': int(b.get('id', 0)) or b.get('id'),
+            'title': b.get('title'),
+            'severity': SEVERITY_LABEL.get(str(b.get('severity')), b.get('severity')),
+            'status': STATUS_LABEL.get(b.get('status'), b.get('status')),
+            'type': TYPE_LABEL.get(b.get('type'), b.get('type')),
+            'project': b.get('project'),
+            'openedBy': _display_name(users, b.get('openedBy', '')),
+            'openedDate': b.get('openedDate'),
+            'resolution': RESOLUTION_LABEL.get(b.get('resolution'), b.get('resolution')),
+        })
+    if args.json:
+        return rows
+    # Group by status for human readability
+    grouped: dict[str, list[dict]] = {}
+    for r in rows:
+        grouped.setdefault(r['status'] or '?', []).append(r)
+    lines = [f"{len(rows)} bug(s) assigned to {c.account}:"]
+    for status_key in ('激活', '已解决', '已关闭'):
+        grp = grouped.pop(status_key, [])
+        if not grp:
+            continue
+        lines.append(f"\n【{status_key} - {len(grp)}】")
+        for r in sorted(grp, key=lambda x: -int(str(x['id']) or 0)):
+            lines.append(
+                f"  [{r['id']:>6}] {r['severity']:<4} "
+                f"{(r['openedDate'] or '')[:10]}  proj={r['project']:<5} "
+                f"来自{r['openedBy']:<8}  {r['title']}"
+            )
+    for status_key, grp in grouped.items():
+        lines.append(f"\n【{status_key} - {len(grp)}】")
+        for r in grp:
+            lines.append(f"  [{r['id']}] {r['severity']} {r['title']}")
+    return '\n'.join(lines)
+
+
 def cmd_bugs(c: Client, args) -> Any:
     pid = args.project or c.defaults.get('default_project')
     if not pid:
@@ -313,6 +357,12 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument('--limit', type=int, default=1000, help='page size (Cookie pagerProjectBug)')
     _add_common(sp)
 
+    sp = sub.add_parser('my-bugs', help='list bugs assigned to me (server-filtered)')
+    sp.add_argument('--status', choices=['active', 'resolved', 'closed', 'all'],
+                    default='all')
+    sp.add_argument('--limit', type=int, default=500, help='page size (Cookie pagerMyBug)')
+    _add_common(sp)
+
     sp = sub.add_parser('bug', help='show bug detail (by scanning its project)')
     sp.add_argument('id', type=int)
     sp.add_argument('--project', type=int)
@@ -341,6 +391,7 @@ HANDLERS = {
     'whoami': cmd_whoami,
     'projects': cmd_projects,
     'bugs': cmd_bugs,
+    'my-bugs': cmd_my_bugs,
     'bug': cmd_bug,
     'bug-report': cmd_bug_report,
     'poll-bugs': cmd_poll_bugs,

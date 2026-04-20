@@ -73,6 +73,7 @@ python "${CLAUDE_PLUGIN_ROOT}/skills/zentao/scripts/cli.py" <command> [args] [--
 
 - `whoami` — verify auth
 - `projects [--all]` — projects I'm a member of
+- `my-bugs [--status active|resolved|closed|all]` — bugs assigned to me (server-filtered)
 - `bugs --project ID [--status active|resolved|closed|all] [--assigned-to ACC]`
 - `bug ID --project PID` — single bug with cleaned HTML steps
 - `bug-report --project ID` — markdown stats by assignee × severity

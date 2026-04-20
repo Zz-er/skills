@@ -53,6 +53,8 @@ python "${CLAUDE_PLUGIN_ROOT}/skills/zentao/scripts/cli.py" <command> [args...] 
 
 - `whoami` — verify auth, print current user profile
 - `projects [--all]` — list projects I'm a member of (default: exclude `closed`)
+- `my-bugs [--status active|resolved|closed|all] [--limit N]` — bugs assigned
+  to the current account (server-filtered via `/my-bug.json`); grouped by status
 - `bugs --project ID [--status active|resolved|closed|all] [--assigned-to ACC] [--limit N]`
   — list bugs of a project; severity/status/type/resolution rendered in Chinese
 - `bug ID --project PID [--limit N]` — show one bug's detail (scans the

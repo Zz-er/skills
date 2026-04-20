@@ -46,7 +46,7 @@ All `.json` endpoints return:
 | Project bugs | `/project-bug-{projectId}.json` | `pagerProjectBug=<N>` sets page size | `bugs`, `users`, `projects`, `products`, `teamMembers`, `pager`, … |
 | Project stories | `/project-story-{projectId}.json` | `pagerProjectStory=<N>` | `stories`, `users`, … |
 | Project tasks | `/project-task-{projectId}.json` | `pagerProjectTask=<N>` | `tasks`, `users`, … |
-| My bugs | `/my-bug.json` | — | `bugs`, `users`, … |
+| My bugs | `/my-bug.json` | `pagerMyBug=<N>` | `bugs` (pre-filtered to current user), `users`, … |
 | My tasks | `/my-task.json` | — | `tasks`, `users`, … |
 | My todos | `/my-todo.json` | — | `todos`, … |
 
