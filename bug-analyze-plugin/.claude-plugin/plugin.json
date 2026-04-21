@@ -1,6 +1,6 @@
 {
   "name": "bug-analyze",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Deep, code-backed bug analysis methodology for multi-layer codebases (FE + IPC + backend). Takes UI-level bug phenomenon reports and produces structured 4-part analyses (symptom / code-cited reasoning / discriminating questions / multi-solution tradeoffs). Integrates with zentao-plugin (or any tracker skill) for fetching bug data and posting back approved drafts.",
   "author": {
     "name": "local"

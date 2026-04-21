@@ -102,6 +102,21 @@ description: 深入分析 UI 层面描述的 bug（来自禅道或其他 tracker
 | "点击没反应" | **几乎一定在 FE slot**（不要去 CoreLib 找） |
 | "保存后 / 重新打开后" | 序列化 / 反序列化层，查 `registerAttributes` AM_FILE |
 | "字段没变 / 改了没生效" | Component 层持久化 + UI 层 Command 双检查 |
+| 特定机器人型号加载失败 / 位置错 | FE `modules/index.ts` 注册表（import / RobotType / getRobotData case 是否齐）|
+
+### 2.3 产品功能模块归类（如果项目 CLAUDE.md 有"产品功能矩阵"/"功能模块"类描述）
+
+先把 bug 按现象关键字归到一个产品模块，再映射到仓库：
+- bug 关键字 → 功能模块（例：墨斗 IDE 有 5 大模块，见其 CLAUDE.md 的 "Product context"）
+- 功能模块 → 仓库清单（例：模块②"Layout & Path"跨 `robot-workstation`（UI）+ `opemindstudio` CoreLib + `devicemanager`）
+- 有 CLAUDE.md 归类时直接用；没有就按标题关键字配合仓库目录名经验判断
+
+### 2.4 IPC 边界意识（重要）
+
+在 FE / IPC / backend 三层框架下，还要判断**IPC 方向**：
+- FE → backend（请求-响应）：绝大多数 bug 在这条路径
+- backend → FE（主动推送）：容易被漏 — 如果"后端算完了但 UI 没刷新"，可能是推送消息的 channel / 字段变了但 FE 没跟着改
+- 本项目示例：`OpenmindStudio.exe` 建模后主动 WebSocket 推 `socket:glbFileAddress` 等到 nodejs，FE 等消息（见本项目 CLAUDE.md）
 
 ### 3. 针对性探查
 - `Grep` 用于精确定位（symbol / filename 明确时）
