@@ -14,6 +14,7 @@ Then install the plugins you need:
 claude plugin install wiki-tools
 claude plugin install reimpl-tutorial
 claude plugin install zentao
+claude plugin install gitlab
 ```
 
 ## Plugins
@@ -84,6 +85,31 @@ cp zentao-plugin/skills/zentao/config.example.yaml ~/.claude/zentao/config.yaml
 ```
 
 See [zentao-plugin/README.md](zentao-plugin/README.md) for details.
+
+### gitlab
+
+Wraps GitLab's REST v4 API (`PRIVATE-TOKEN` auth) so AI agents can list
+projects, fetch commit/compare diffs for code review, and manage merge requests
+and branches. Tested against self-hosted CE 13.3+ and gitlab.com.
+
+**Skills:**
+
+| Skill | Description |
+|-------|-------------|
+| `/gitlab` | Full read/write CLI: projects, groups, branches, commits + diffs, file content, merge requests (list / find / create / merge / comment), commit comments |
+
+**Quick start:**
+
+```
+# one-time config
+mkdir -p ~/.claude/gitlab
+cp gitlab-plugin/skills/gitlab/config.example.yaml ~/.claude/gitlab/config.yaml
+# fill in url + personal access token
+pip install -r gitlab-plugin/skills/gitlab/requirements.txt
+# then just talk to Claude: "拉一下 commit abc1234 的 diff" / "合并 MR !17"
+```
+
+See [gitlab-plugin/README.md](gitlab-plugin/README.md) for details.
 
 ## Plugin Integration
 

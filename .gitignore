@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+
+# Per-user Claude Code state — should not be shared
+.claude/settings.local.json
+
+# Local config secrets (skill users put PATs here)
+**/config.yaml
+!**/config.example.yaml
+
+# Editors
+.idea/
+.vscode/
+*.swp
+.DS_Store

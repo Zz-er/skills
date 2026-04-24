@@ -1,0 +1,33 @@
+# gitlab skill config — copy to ~/.claude/gitlab/config.yaml and fill in.
+#
+# Lookup order:
+#   1. --config <path>
+#   2. $GITLAB_CONFIG env var
+#   3. ~/.claude/gitlab/config.yaml
+#   4. ${CLAUDE_PLUGIN_ROOT}/skills/gitlab/config.yaml (in-tree fallback for dev)
+
+# GitLab base URL. No trailing slash. Works with gitlab.com or self-hosted CE/EE.
+url: https://gitlab.mycompany.com
+
+# Personal Access Token with at least `api` scope.
+# Generate at: <url>/-/profile/personal_access_tokens
+token: glpat-xxxxxxxxxxxxxxxxxxxx
+
+# --- optional ---
+
+# Disable TLS verification (self-signed internal GitLab). Default: true.
+verify_ssl: true
+
+# HTTP timeout in seconds. Default: 30.
+timeout: 30
+
+# Default project ID or path (e.g. 42 or "mygroup/myrepo"). Commands that accept
+# --project can omit it if this is set.
+# default_project: mygroup/myrepo
+
+# If set, `gitlab projects` without --group defaults to this list (one or more
+# top-level GitLab group paths). Useful for large instances where the global
+# /projects endpoint returns too much noise.
+# default_groups:
+#   - mygroup
+#   - another-group
