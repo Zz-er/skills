@@ -126,10 +126,36 @@ Don't hand-roll your own POST to `bug-edit` without doing the same.
 - `steps` is HTML with `{image.png}` placeholders — use `clean_html()`.
 - Session expires; the CLI auto-refreshes once on login-redirect.
 
+## Product context (load on demand)
+
+If the ZenTao instance tracks a single known product, per-product bug-routing
+knowledge can be layered on top of the generic CLI:
+
+- `references/product-context.md` — **墨斗 IDE / OpenmindStudio** (default for
+  the maintainer's deployment). Maps bug-title keywords to the 5 feature
+  modules (Model Builder / Layout & Path / System Config / RPL+AI /
+  Simulation), lists common failure patterns with the C++ and FE layers they
+  usually belong to, and points to the relevant pages in the LLM Wiki
+  (`opemindstudio`, `node-component-architecture`,
+  `attribute-system-am-file`, `two-stage-picking`,
+  `predefined-node-factory`, `model-library-load-pipeline`, …).
+
+When summarizing bugs, commenting on bugs, or handing off to `bug-analyze`,
+consult the product-context file **after** fetching bug data so each bug
+comes with its module + architectural pointers. If `wiki-tools` is
+available, use `wiki-tools:wiki-query <page-stem>` to pull the current
+content of referenced wiki pages — the wiki tracks source and is more
+current than this skill's embedded references.
+
+If the ZenTao instance is used for a different product, ignore the
+product-context file (or replace it with a project-specific analog).
+
 ## Reference
 
 - `references/endpoints.md` — full URL table and response shape
 - `references/fields.md` — field types, enums, display mappings
+- `references/product-context.md` — per-product bug-routing knowledge
+  (currently scoped to 墨斗 IDE / OpenmindStudio)
 
 ## Failure modes
 
