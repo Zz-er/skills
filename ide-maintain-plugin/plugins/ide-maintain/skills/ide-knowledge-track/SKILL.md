@@ -4,6 +4,12 @@ description: >
   墨斗 IDE 会话期间的知识追踪器。在 ide-context-load 激活后**主动持续运行**，
   会话中识别"新发现的 IDE 项目知识"并追加到 .ide-session-notes.md。
   
+  **生效条件**（与 ide-context-load 一致）：cwd 位于以下 10 个墨斗 IDE 仓任一（
+  opemindstudio / devicemanager / inktank-occ-master / inktank-node-occ /
+  inktank-kdl / robot-workstation / inktank-core / three-editor /
+  inktank-master / inktank-platform），或位于 E:\分析\智能焊接\，
+  或用户消息含墨斗 IDE 关键词。
+  
   触发追加的事件：
   - 用户告诉 Claude 新事实（"X 已经离职" / "Y 模块已重构" / "Z 接口改了"）
   - 用户纠正 wiki 错误认知（"wiki 写错了，实际上..."）

@@ -1,7 +1,15 @@
 ---
 name: ide-wiki-sync
 description: >
-  墨斗 IDE 任务完成时的 wiki 同步提示器。在以下场景**主动激活**：
+  墨斗 IDE 任务完成时的 wiki 同步提示器。
+  
+  **生效条件**（与 ide-context-load 一致）：cwd 位于以下 10 个墨斗 IDE 仓任一（
+  opemindstudio / devicemanager / inktank-occ-master / inktank-node-occ /
+  inktank-kdl / robot-workstation / inktank-core / three-editor /
+  inktank-master / inktank-platform），或位于 E:\分析\智能焊接\，
+  或用户消息含墨斗 IDE 关键词。
+  
+  在以下场景**主动激活**：
   - 用户说"任务完成" / "今天就到这" / "好了" / "搞定" / "可以收尾了" 等
   - 用户切换主题（从 IDE 任务转到无关话题）
   - 长时间会话即将进入压缩（compact）前
