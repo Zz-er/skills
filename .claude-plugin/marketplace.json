@@ -29,6 +29,12 @@
       "description": "墨斗 IDE 维护辅助。进入以下 10 个 IDE 关联仓库任一（opemindstudio / devicemanager / inktank-occ-master / inktank-node-occ / inktank-kdl / robot-workstation / inktank-core / three-editor / inktank-master / inktank-platform）或智能焊接任务（E:\\分析\\智能焊接\\）时自动加载 project_wiki 相关条目，会话期间维护新发现知识清单，任务完成提示同步回 wiki。提供 /ide-context-load、/ide-knowledge-track、/ide-wiki-sync 三个 skills。",
       "source": "./ide-maintain-plugin/plugins/ide-maintain",
       "category": "productivity"
+    },
+    {
+      "name": "task-decompose",
+      "description": "Theory-grounded task decomposition methodology: split a project into parallel work-lines, map requirements to lines (many-to-many via DMM), insert stubs to decouple cross-line dependencies (DSM tearing), identify the true constraint (TOC, usually headcount), and assign integration owners. Grounded in DSM/MDM, WBS, Parnas, Conway's Law, Team Topologies. Living skill, updated as projects surface new patterns.",
+      "source": "./task-decompose-plugin",
+      "category": "productivity"
     }
   ]
 }

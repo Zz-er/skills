@@ -1,0 +1,8 @@
+{
+  "name": "task-decompose",
+  "version": "1.0.0",
+  "description": "Theory-grounded methodology for decomposing a project into parallel work-lines, mapping requirements to lines (many-to-many via DMM), inserting stubs to decouple cross-line dependencies (DSM tearing), identifying the true constraint (TOC, usually headcount not tech), and assigning integration owners. Distilled from real multi-team C++/FE/algorithm planning. Living skill — append new patterns under 经验累积 as projects surface them.",
+  "author": {
+    "name": "local"
+  }
+}
